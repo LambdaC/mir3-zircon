@@ -470,7 +470,8 @@ namespace Library
     {
         None,
 
-        Swordsmanship = 100,
+        // 战士技能
+        Swordsmanship = 100,  // 基础剑术
         PotionMastery = 101,
         Slaying = 102,
         Thrusting = 103,
@@ -496,6 +497,7 @@ namespace Library
         MassBeckon = 123,
         SeismicSlam = 124,
 
+        // 法师技能
         FireBall = 201,
         LightningBall = 202,
         IceBolt = 203,
@@ -537,6 +539,7 @@ namespace Library
         FrostBite = 239,
         Asteroid = 240,
 
+        // 道士技能
         Heal = 300,
         SpiritSword = 301,
         PoisonDust = 302,
@@ -578,6 +581,7 @@ namespace Library
         Infection = 338,
         DemonicRecovery = 339,
 
+        // 刺客技能·
         WillowDance = 401,
         VineTreeDance = 402,
         Discipline = 403,
