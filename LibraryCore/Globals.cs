@@ -385,14 +385,14 @@ namespace Library
                          EquipmentOffSet = 1000,
                          StorageSize = 100;
 
-        public const int AttackDelay = 1500,
-                         ASpeedRate = 47,
+        public const int AttackDelay = 1500,    // 基础攻击间隔?
+                         ASpeedRate = 47,       // 攻击速率?
                          ProjectileSpeed = 48;
 
         public static TimeSpan TurnTime = TimeSpan.FromMilliseconds(300),
                                HarvestTime = TimeSpan.FromMilliseconds(600),
                                MoveTime = TimeSpan.FromMilliseconds(600),
-                               AttackTime = TimeSpan.FromMilliseconds(600),
+                               AttackTime = TimeSpan.FromMilliseconds(600), // 攻击CD,用来计算下次行动时间
                                CastTime = TimeSpan.FromMilliseconds(600),
                                MagicDelay = TimeSpan.FromMilliseconds(2000);
 

@@ -8,6 +8,9 @@ namespace Server
 {
     class Program
     {
+        /**
+         * Server Entry Point
+         */
         static void Main(string[] args)
         {
             var assembly = Assembly.GetAssembly(typeof(Config));

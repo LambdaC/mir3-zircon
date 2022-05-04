@@ -1,0 +1,10 @@
+移动逻辑：
+	LibraryCore/Functions.cs::Move();
+
+玩家移动处理：
+	ServerLibrary/Models/PlayerObject.cs::Move();
+	猜测：
+		distance = 1; 走
+		distance = 2; 跑
+		distance = 3; 骑马
+		每隔0.6秒行动一次，每次可以移动1/2/3个格子。

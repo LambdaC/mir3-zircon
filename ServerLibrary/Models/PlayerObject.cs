@@ -354,6 +354,10 @@ namespace Server.Models
                 Success = true,
             });
         }
+
+        /**
+         * 生命回复
+         */
         public void ProcessRegen()
         {
             if (Dead || SEnvir.Now < RegenTime) return;
@@ -12678,6 +12682,7 @@ namespace Server.Models
         }
         public void Attack(MirDirection direction, MagicType attackMagic)
         {
+            // 应该是行动和攻击都处于CD状态
             if (SEnvir.Now < ActionTime || SEnvir.Now < AttackTime)
             {
                 if (!PacketWaiting)
@@ -12699,14 +12704,17 @@ namespace Server.Models
 
             CombatTime = SEnvir.Now;
 
+            // 为什么攻击的时候要计算舒适度？？
             if (Stats[Stat.Comfort] < 15)
                 RegenTime = SEnvir.Now + RegenDelay;
             Direction = direction;
+
+            // 计算下次可以进行行动的时间
             ActionTime = SEnvir.Now + Globals.AttackTime;
 
             int aspeed = Stats[Stat.AttackSpeed];
             int attackDelay = Globals.AttackDelay - aspeed * Globals.ASpeedRate;
-            attackDelay = Math.Max(800, attackDelay);
+            attackDelay = Math.Max(800, attackDelay); /// 攻击频率最小为800ms, 最大为1500ms
             AttackTime = SEnvir.Now.AddMilliseconds(attackDelay);
 
             Poison poison = PoisonList.FirstOrDefault(x => x.Type == PoisonType.Slow);
