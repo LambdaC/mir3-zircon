@@ -142,7 +142,7 @@ namespace Client.Scenes
         }
 
         #endregion
-        
+
         public MapControl MapControl;
         public MainPanel MainPanel;
 
@@ -197,6 +197,9 @@ namespace Client.Scenes
         public FortuneCheckerDialog FortuneCheckerBox;
         public NPCWeaponCraftWindow NPCWeaponCraftBox;
         public NPCAccessoryRefineDialog NPCAccessoryRefineBox;
+        public CurrencyDialog CurrencyBox;
+
+        public FishingCatchDialog FishingCatchBox;
 
         public ClientUserItem[] Inventory = new ClientUserItem[Globals.InventorySize];
         public ClientUserItem[] Equipment = new ClientUserItem[Globals.EquipmentSize];
@@ -214,6 +217,7 @@ namespace Client.Scenes
 
         public bool MoveFrame { get; set; }
         private DateTime MoveTime, OutputTime, ItemRefreshTime;
+
         public bool CanRun;
 
         public bool AutoRun
@@ -344,6 +348,8 @@ namespace Client.Scenes
             foreach (DXWindow window in DXWindow.Windows)
                 window.LoadSettings();
 
+            InventoryBox?.LoadSettings();
+
             LoadChatTabs();
         }
 
@@ -355,7 +361,7 @@ namespace Client.Scenes
             Game = this;
 
             foreach (NPCInfo info in Globals.NPCInfoList.Binding)
-                info.CurrentIcon = QuestIcon.None;
+                info.CurrentQuest = null;
 
             MapControl = new MapControl
             {
@@ -631,6 +637,12 @@ namespace Client.Scenes
                 Visible = false,
             };
 
+            CurrencyBox = new CurrencyDialog
+            {
+                Parent = this,
+                Visible = false,
+            };
+
             NPCWeaponCraftBox = new NPCWeaponCraftWindow
             {
                 Visible = false,
@@ -643,12 +655,20 @@ namespace Client.Scenes
                 Visible = false,
             };
 
+            FishingCatchBox = new FishingCatchDialog
+            {
+                Parent = this,
+                Visible = false,
+            };
+
             SetDefaultLocations();
 
             LoadChatTabs();
 
             foreach (DXWindow window in DXWindow.Windows)
                 window.LoadSettings();
+
+            InventoryBox.LoadSettings();
         }
 
         #region Methods
@@ -668,7 +688,7 @@ namespace Client.Scenes
 
             GuildMemberBox.Location = new Point((Size.Width - GuildMemberBox.Size.Width) / 2, (Size.Height - GuildMemberBox.Size.Height) / 2);
 
-            InventoryBox.Location = new Point(Size.Width - InventoryBox.Size.Width, 0);
+            InventoryBox.Location = new Point(Size.Width - InventoryBox.Size.Width, MiniMapBox.Size.Height);
             
             CharacterBox.Location = Point.Empty;
 
@@ -725,6 +745,10 @@ namespace Client.Scenes
             FortuneCheckerBox.Location = new Point((Size.Width - FortuneCheckerBox.Size.Width) / 2, (Size.Height - FortuneCheckerBox.Size.Height) / 2);
 
             NPCWeaponCraftBox.Location = new Point((Size.Width - NPCWeaponCraftBox.Size.Width) / 2, (Size.Height - NPCWeaponCraftBox.Size.Height) / 2);
+
+            CurrencyBox.Location = new Point((Size.Width - CurrencyBox.Size.Width) / 2, (Size.Height - CurrencyBox.Size.Height) / 2);
+
+            FishingCatchBox.Location = new Point(((Size.Width - FishingCatchBox.Size.Width) / 2) - 10, ((Size.Height - FishingCatchBox.Size.Height) / 2) - 100);
         }
 
         public void SaveChatTabs()
@@ -802,26 +826,31 @@ namespace Client.Scenes
                 ChatTab selected = null;
                 foreach (ChatTabPageSetting pSetting in cSetting.Controls)
                 {
-                    ChatTab tab = ChatOptionsBox.AddNewTab();
+                    ChatTab tab = ChatOptionsBox.AddNewTab(pSetting);
 
                     tab.Parent = tabControl;
 
-                    tab.Panel.NameTextBox.TextBox.Text = pSetting.Name;
-                    tab.Panel.TransparentCheckBox.Checked = pSetting.Transparent;
-                    tab.Panel.AlertCheckBox.Checked = pSetting.Alert;
-                    tab.Panel.LocalCheckBox.Checked = pSetting.LocalChat;
-                    tab.Panel.WhisperCheckBox.Checked = pSetting.WhisperChat;
-                    tab.Panel.GroupCheckBox.Checked = pSetting.GroupChat;
-                    tab.Panel.GuildCheckBox.Checked = pSetting.GuildChat;
-                    tab.Panel.ShoutCheckBox.Checked = pSetting.ShoutChat;
-                    tab.Panel.GlobalCheckBox.Checked = pSetting.GlobalChat;
-                    tab.Panel.ObserverCheckBox.Checked = pSetting.ObserverChat;
+                    tab.Panel.NameTextBox.TextBox.Text = tab.Settings.Name;
+                    tab.Panel.AlertCheckBox.Checked = tab.Settings.Alert;
+                    tab.Panel.LocalCheckBox.Checked = tab.Settings.LocalChat;
+                    tab.Panel.WhisperCheckBox.Checked = tab.Settings.WhisperChat;
+                    tab.Panel.GroupCheckBox.Checked = tab.Settings.GroupChat;
+                    tab.Panel.GuildCheckBox.Checked = tab.Settings.GuildChat;
+                    tab.Panel.ShoutCheckBox.Checked = tab.Settings.ShoutChat;
+                    tab.Panel.GlobalCheckBox.Checked = tab.Settings.GlobalChat;
+                    tab.Panel.ObserverCheckBox.Checked = tab.Settings.ObserverChat;
 
-                    tab.Panel.HintCheckBox.Checked = pSetting.HintChat;
-                    tab.Panel.SystemCheckBox.Checked = pSetting.SystemChat;
-                    tab.Panel.GainsCheckBox.Checked = pSetting.GainsChat;
+                    tab.Panel.HintCheckBox.Checked = tab.Settings.HintChat;
+                    tab.Panel.SystemCheckBox.Checked = tab.Settings.SystemChat;
+                    tab.Panel.GainsCheckBox.Checked = tab.Settings.GainsChat;
 
-                    if (pSetting == cSetting.SelectedPage)
+                }
+
+                foreach (ChatTab tab in ChatTab.Tabs)
+                {
+                    tab.Panel.TransparentCheckBox.Checked = tab.Settings.Transparent;
+
+                    if (tab.Settings == cSetting.SelectedPage)
                         selected = tab;
                 }
 
@@ -857,7 +886,6 @@ namespace Client.Scenes
                 else
                     MouseItem = null;
             }
-
 
             TimeSpan ticks = CEnvir.Now - ItemTime;
             ItemTime = CEnvir.Now;
@@ -909,6 +937,9 @@ namespace Client.Scenes
             for (int i = MapControl.Effects.Count - 1; i >= 0; i--)
                 MapControl.Effects[i].Process();
 
+            for (int i = MapControl.ParticleEffects.Count - 1; i >= 0; i--)
+                MapControl.ParticleEffects[i].Process();
+
             if (ItemLabel != null && !ItemLabel.IsDisposed)
             {
                 int x = CEnvir.MouseLocation.X + 15, y = CEnvir.MouseLocation.Y;
@@ -924,7 +955,6 @@ namespace Client.Scenes
 
                 if (y <= Location.Y)
                     y = Location.Y;
-
 
                 ItemLabel.Location = new Point(x, y);
             }
@@ -945,10 +975,8 @@ namespace Client.Scenes
                 if (y <= Location.Y)
                     y = Location.Y;
 
-
                 MagicLabel.Location = new Point(x, y);
             }
-
 
             MonsterObject mob = MouseObject as MonsterObject;
 
@@ -980,6 +1008,15 @@ namespace Client.Scenes
             {
                 switch (action)
                 {
+                    //case KeyBindAction.FishingTemp:
+                    //    if (Observer) continue;
+
+                    //    if (CEnvir.Now < User.NextActionTime || User.ActionQueue.Count > 0) return;
+                    //    if (CEnvir.Now < User.ServerTime) return; //Next Server response Time.
+
+                    //    User.ServerTime = CEnvir.Now.AddSeconds(5);
+                    //    CEnvir.Enqueue(new C.FishingCast { CastOut = !GameScene.Game.User.Fishing });
+                    //    break;
                     case KeyBindAction.ConfigWindow:
                         ConfigBox.Visible = !ConfigBox.Visible;
                         break;
@@ -994,6 +1031,9 @@ namespace Client.Scenes
                         break;
                     case KeyBindAction.FortuneWindow:
                         FortuneCheckerBox.Visible = !FortuneCheckerBox.Visible;
+                        break;
+                    case KeyBindAction.CurrencyWindow:
+                        CurrencyBox.Visible = !CurrencyBox.Visible;
                         break;
                     case KeyBindAction.MagicWindow:
                         MagicBox.Visible = !MagicBox.Visible;
@@ -1519,7 +1559,7 @@ namespace Client.Scenes
             if (needSpacer)
                 ItemLabel.Size = new Size(ItemLabel.Size.Width, ItemLabel.Size.Height + 4);
 
-            if (MouseItem.Info.Effect == ItemEffect.Gold || MouseItem.Info.Effect == ItemEffect.Experience)
+            if (CEnvir.IsCurrencyItem(MouseItem.Info) || MouseItem.Info.Effect == ItemEffect.Experience)
             {
                 label = new DXLabel
                 {
@@ -2414,7 +2454,7 @@ namespace Client.Scenes
 
             MagicLabel = new DXControl
             {
-                BackColour = Color.FromArgb(255, 0, 24, 48),
+                BackColour = Color.FromArgb(200, 0, 24, 48),
                 Border = true,
                 BorderColour = Color.Yellow, // Color.FromArgb(144, 148, 48),
                 DrawTexture = true,
@@ -2557,9 +2597,7 @@ namespace Client.Scenes
                 Text = MouseMagic.Description,
             };
             label.Size = DXLabel.GetHeight(label, MagicLabel.Size.Width );
-            MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom + 4);
-            
-
+            MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom + 4);  
         }
         private void SetItemInfo(SetInfo set)
         {
@@ -2713,7 +2751,7 @@ namespace Client.Scenes
 
         public void UseMagic(SpellKey key)
         {
-            if (Game.Observer || User == null || User.Horse != HorseType.None || MagicBarBox == null) return;
+            if (Game.Observer || User == null || User.Horse != HorseType.None || MagicBarBox == null || User.Fishing) return;
 
             ClientUserMagic magic = null;
 
@@ -3220,7 +3258,6 @@ namespace Client.Scenes
 
             if (MagicLabel != null && !MagicLabel.IsDisposed)
                 MagicLabel.Draw();
-
         }
 
         public void Displacement(MirDirection direction, Point location)
@@ -3252,10 +3289,16 @@ namespace Client.Scenes
                 if (item.Info.Effect == ItemEffect.Experience) continue;
                 if ((item.Flags & UserItemFlags.QuestItem) == UserItemFlags.QuestItem) continue;
 
-                if (item.Info.Effect == ItemEffect.Gold)
+                var currency = User.GetCurrency(item.Info);
+                if (currency != null)
                 {
-                    User.Gold += item.Count;
-                    DXSoundManager.Play(SoundIndex.GoldGained);
+                    currency.Amount += item.Count;
+
+                    GameScene.Game.CurrencyChanged();
+
+                    if (currency.Info.Type == CurrencyType.Gold)
+                        DXSoundManager.Play(SoundIndex.GoldGained);
+
                     continue;
                 }
 
@@ -3304,10 +3347,16 @@ namespace Client.Scenes
                 if (item.Info.Effect == ItemEffect.Experience) continue;
                 if ((item.Flags & UserItemFlags.QuestItem) == UserItemFlags.QuestItem) continue;
 
-                if (item.Info.Effect == ItemEffect.Gold)
+                var currency = User.GetCurrency(item.Info);
+                if (currency != null)
                 {
-                    User.Gold += item.Count;
-                    DXSoundManager.Play(SoundIndex.GoldGained);
+                    currency.Amount += item.Count;
+
+                    GameScene.Game.CurrencyChanged();
+
+                    if (currency.Info.Type == CurrencyType.Gold)
+                        DXSoundManager.Play(SoundIndex.GoldGained);
+
                     continue;
                 }
 
@@ -3512,7 +3561,7 @@ namespace Client.Scenes
             ExperienceChanged();
             HealthChanged();
             ManaChanged();
-            GoldChanged();
+            CurrencyChanged();
             SafeZoneChanged();
             AttackModeChanged();
             PetModeChanged();
@@ -3626,18 +3675,26 @@ namespace Client.Scenes
 
             MainPanel.PetModeLabel.Text = description?.Description ?? User.PetMode.ToString();
         }
-        public void GoldChanged()
+        public void CurrencyChanged()
         {
             if (User == null) return;
 
-            InventoryBox.GoldLabel.Text = User.Gold.ToString("#,##0");
-            MarketPlaceBox.GameGoldBox.Value = User.GameGold;
-            MarketPlaceBox.HuntGoldBox.Value = User.HuntGold;
+            InventoryBox.GoldLabel.Text = User.Gold.Amount.ToString("#,##0");
+            InventoryBox.GameGoldLabel.Text = User.GameGold.Amount.ToString("#,##0");
+            MarketPlaceBox.GameGoldBox.Value = User.GameGold.Amount;
+            MarketPlaceBox.HuntGoldBox.Value = User.HuntGold.Amount;
             NPCAdoptCompanionBox.RefreshUnlockButton();
 
-
             foreach (NPCGoodsCell cell in NPCGoodsBox.Cells)
+            {
+                cell.UpdateCosts();
                 cell.UpdateColours();
+            }
+
+            foreach (CurrencyCell cell in CurrencyBox.Cells)
+            {
+                cell.UpdateAmount();
+            }
         }
         public void SafeZoneChanged()
         {
@@ -3749,6 +3806,10 @@ namespace Client.Scenes
 
             UpdateQuestIcons();
         }
+        public void CancelQuest(QuestInfo quest)
+        {
+            QuestBox.CancelQuest(quest);
+        }
 
         public bool HasQuest(MonsterInfo info, MapInfo map)
         {
@@ -3817,8 +3878,10 @@ namespace Client.Scenes
                     builder.AppendFormat("Kill {0} ", task.Amount);
                     break;
                 case QuestTaskType.GainItem:
-                    builder.AppendFormat("Collect {0} {1} from ", task.Amount, task.ItemParameter?.ItemName);
-                    
+                    builder.AppendFormat("Collect {0} {1} from ", task.Amount, task.ItemParameter?.ItemName);  
+                    break;
+                case QuestTaskType.Region:
+                    builder.AppendFormat("Goto {0} in {1}", task.RegionParameter?.Description, task.RegionParameter?.Map.Description);
                     break;
             }
 
@@ -3854,7 +3917,12 @@ namespace Client.Scenes
                 if (userTask != null && userTask.Completed)
                     builder.Append(" (Completed)");
                 else
-                    builder.Append($" ({userTask?.Amount ?? 0}/{task.Amount})");
+                {
+                    if (task.Task != QuestTaskType.Region)
+                    {
+                        builder.Append($" ({userTask?.Amount ?? 0}/{task.Amount})");
+                    }
+                }
             }
 
             return builder.ToString();
@@ -3863,11 +3931,7 @@ namespace Client.Scenes
         public void UpdateQuestIcons()
         {
             foreach (NPCInfo info in Globals.NPCInfoList.Binding)
-                info.CurrentIcon = QuestIcon.None;
-
-            foreach (QuestInfo quest in QuestBox.AvailableTab.Quests)
-                quest.StartNPC.CurrentIcon |= QuestIcon.NewQuest;
-
+                info.CurrentQuest = null;
 
             bool completed = false;
 
@@ -3875,13 +3939,35 @@ namespace Client.Scenes
             {
                 ClientUserQuest userQuest = QuestLog.First(x => x.Quest == quest);
 
+                if (quest.FinishNPC.CurrentQuest != null) continue;
+
+                var current = new CurrentQuest
+                {
+                    Type = quest.QuestType
+                };
+
                 if (userQuest.IsComplete)
                 {
-                    quest.FinishNPC.CurrentIcon |= QuestIcon.QuestComplete;
+                    current.Icon = QuestIcon.Complete;
                     completed = true;
                 }
-                else 
-                    quest.FinishNPC.CurrentIcon |= QuestIcon.QuestIncomplete;
+                else
+                {
+                    current.Icon = QuestIcon.Incomplete;
+                }
+
+                quest.FinishNPC.CurrentQuest = current;
+            }
+
+            foreach (QuestInfo quest in QuestBox.AvailableTab.Quests)
+            {
+                if (quest.StartNPC.CurrentQuest != null) continue;
+
+                quest.StartNPC.CurrentQuest = new CurrentQuest
+                {
+                    Type = quest.QuestType,
+                    Icon = QuestIcon.New
+                };
             }
 
             MainPanel.AvailableQuestIcon.Visible = QuestBox.AvailableTab.Quests.Count > 0;
@@ -3908,33 +3994,56 @@ namespace Client.Scenes
             int icon = 0;
             Color colour = Color.White;
 
+            if (NPC.CurrentQuest != null)
+            {
+                switch (NPC.CurrentQuest.Type)
+                {
+                    case QuestType.General:
+                        icon = 16;
+                        colour = Color.Yellow;
+                        break;
+                    case QuestType.Daily:
+                        icon = 76;
+                        colour = Color.Blue;
+                        break;
+                    case QuestType.Repeatable:
+                        icon = 16;
+                        colour = Color.Yellow;
+                        break;
+                    case QuestType.Story:
+                        icon = 56;
+                        colour = Color.Green;
+                        break;
+                    //case QuestType.Account:
+                    //    icon = 36;
+                    //    colour = Color.Purple;
+                    //    break;
+                }
 
-            if ((NPC.CurrentIcon & QuestIcon.QuestComplete) == QuestIcon.QuestComplete)
-            {
-                icon = 98;
-                colour = Color.Yellow;
-
-            }
-            else if ((NPC.CurrentIcon & QuestIcon.NewQuest) == QuestIcon.NewQuest)
-            {
-                icon = 97;
-                colour = Color.Yellow;
-            }
-            else if ((NPC.CurrentIcon & QuestIcon.QuestIncomplete) == QuestIcon.QuestIncomplete)
-            {
-                icon = 98;
-                colour = Color.White;
+                switch (NPC.CurrentQuest.Icon)
+                {
+                    case QuestIcon.New:
+                        icon += 0;
+                        break;
+                    case QuestIcon.Incomplete:
+                        icon = 2;
+                        colour = Color.White;
+                        break;
+                    case QuestIcon.Complete:
+                        icon += 2;
+                        break;
+                }
             }
 
             if (icon > 0)
             {
                 DXImageControl image = new DXImageControl
                 {
-                    LibraryFile = LibraryFile.Interface,
+                    LibraryFile = LibraryFile.QuestIcon,
                     Index = icon,
                     ForeColour = colour,
                     Hint = NPC.NPCName,
-                    Tag = NPC.CurrentIcon,
+                    Tag = NPC.CurrentQuest,
                 };
                 image.OpacityChanged += (o, e) => image.ImageOpacity = image.Opacity;
 
@@ -3947,7 +4056,7 @@ namespace Client.Scenes
                 DrawTexture = true,
                 Hint = NPC.NPCName,
                 BackColour = Color.Lime,
-                Tag = NPC.CurrentIcon,
+                Tag = NPC.CurrentQuest,
             };
         }
 
@@ -4007,7 +4116,6 @@ namespace Client.Scenes
 
                     MagicLabel = null;
                 }
-                
 
                 if (MapControl != null)
                 {

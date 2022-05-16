@@ -22,7 +22,8 @@ namespace Client.Scenes.Views
     public sealed class NPCDialog : DXWindow
     {
         #region Properties
-        public static  Regex R = new Regex(@"\[(?<Text>.*?):(?<ID>.+?)\]", RegexOptions.Compiled);
+
+        public static Regex R = new Regex(@"\[(?<Text>.*?):(?<ID>.+?)\]", RegexOptions.Compiled);
 
         public NPCPage Page;
         public DXLabel PageText;
@@ -154,6 +155,7 @@ namespace Client.Scenes.Views
                 Parent = this,
                 Location = new Point(ClientArea.X + 10, ClientArea.Y + 10),
                 Size = new Size(ClientArea.Width - 20, ClientArea.Height - 20),
+                ForeColour = Color.White
             };
         }
 
@@ -170,7 +172,6 @@ namespace Client.Scenes.Views
             int height = DXLabel.GetHeight(PageText, ClientArea.Width).Height;
             if (height > ClientArea.Height)
                 SetClientSize(new Size(ClientArea.Width, height));
-
 
             ProcessText();
 
@@ -199,8 +200,9 @@ namespace Client.Scenes.Views
                 case NPCDialogType.BuySell:
                     GameScene.Game.NPCGoodsBox.Location = new Point(0, Size.Height);
                     GameScene.Game.NPCGoodsBox.Visible = Page.Goods.Count > 0;
-                    GameScene.Game.NPCGoodsBox.NewGoods(Page.Goods);
+                    GameScene.Game.NPCGoodsBox.NewGoods(Page.Goods, Page.Currency);
                     GameScene.Game.NPCSellBox.Visible = Page.Types.Count > 0;
+                    GameScene.Game.NPCSellBox.SetCurrency(Page.Currency);
                     GameScene.Game.NPCSellBox.Location = GameScene.Game.NPCGoodsBox.Visible ? new Point(Size.Width - GameScene.Game.NPCSellBox.Size.Width, Size.Height) : new Point(0, Size.Height);
                     break;
                 case NPCDialogType.Repair:
@@ -295,7 +297,7 @@ namespace Client.Scenes.Views
                         Location = info.Region.Location,
                         DrawFormat = PageText.DrawFormat,
                         Text = PageText.Text.Substring(info.Index, info.Length),
-                        Font = new Font(PageText.Font.FontFamily, PageText.Font.Size, FontStyle.Underline),
+                        Font = new Font(PageText.Font.FontFamily, PageText.Font.Size),
                         Size = info.Region.Size,
                         Outline = false,
                         Sound = SoundIndex.ButtonC,
@@ -344,7 +346,6 @@ namespace Client.Scenes.Views
 
         public static List<ButtonInfo> GetWordRegionsNew(Graphics graphics, string text, Font font, TextFormatFlags flags, int width, int index, int length)
         {
-
             List<ButtonInfo> regions = new List<ButtonInfo>();
 
             Size tSize = TextRenderer.MeasureText(graphics, "A", font, new Size(width, 2000), flags);
@@ -490,6 +491,7 @@ namespace Client.Scenes.Views
 
             return regions;*/
         }
+
         #endregion
 
         #region IDisposable
@@ -578,6 +580,8 @@ namespace Client.Scenes.Views
         private DXVScrollBar ScrollBar;
         public DXCheckBox GuildCheckBox;
 
+        private CurrencyInfo Currency;
+
         public List<NPCGoodsCell> Cells = new List<NPCGoodsCell>();
         private DXButton BuyButton;
         public DXControl ClientPanel;
@@ -645,13 +649,14 @@ namespace Client.Scenes.Views
                 Enabled = false,
             };
             GuildCheckBox.Location = new Point( 200, BuyButton.Location.Y + (BuyButton.Size.Height - GuildCheckBox.Size.Height) /2);
-
         }
 
         #region Methods
 
-        public void NewGoods(IList<NPCGood> goods)
+        public void NewGoods(IList<NPCGood> goods, CurrencyInfo currency)
         {
+            Currency = currency ?? Globals.CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold);
+
             foreach (NPCGoodsCell cell in Cells)
                 cell.Dispose();
 
@@ -663,13 +668,13 @@ namespace Client.Scenes.Views
                 Cells.Add(cell = new NPCGoodsCell
                 {
                     Parent = ClientPanel,
-                    Good = good
+                    Good = good,
+                    Currency = Currency
                 });
                 cell.MouseClick += (o, e) => SelectedCell = cell;
                 cell.MouseWheel += ScrollBar.DoMouseWheel;
                 cell.MouseDoubleClick += (o, e) => Buy();
             }
-
 
             ScrollBar.MaxValue = goods.Count*43 - 2;
             SetClientSize(new Size(ClientArea.Width, Math.Min(ScrollBar.MaxValue, 7*43 - 3) + 1));
@@ -677,7 +682,11 @@ namespace Client.Scenes.Views
             ScrollBar.Size = new Size(ScrollBar.Size.Width, ClientArea.Height - 2);
 
             BuyButton.Location = new Point(30, Size.Height - 43);
+
+            GuildCheckBox.Checked = false;
             GuildCheckBox.Location = new Point(120, BuyButton.Location.Y + (BuyButton.Size.Height - GuildCheckBox.Size.Height) / 2);
+            GuildCheckBox.Visible = Currency.Type == CurrencyType.Gold;
+
             ScrollBar.Value = 0;
             UpdateLocations();
         }
@@ -699,20 +708,20 @@ namespace Client.Scenes.Views
 
             if (SelectedCell == null) return;
 
-            long gold = MapObject.User.Gold;
+            var userCurrency = GameScene.Game.User.GetCurrency(Currency);
+
+            long gold = userCurrency.Amount;
 
             if (GuildCheckBox.Checked && GameScene.Game.GuildBox.GuildInfo != null)
                 gold = GameScene.Game.GuildBox.GuildInfo.GuildFunds;
 
+            var cost = (int)Math.Max(1, SelectedCell.Good.Cost * Currency.ExchangeRate);
 
             if (SelectedCell.Good.Item.StackSize > 1)
             {
                 long maxCount = SelectedCell.Good.Item.StackSize;
 
-                maxCount = Math.Min(maxCount, gold / SelectedCell.Good.Cost);
-
-
-
+                maxCount = Math.Min(maxCount, gold / cost);
                 if (SelectedCell.Good.Item.Weight > 0)
                 {
                     switch (SelectedCell.Good.Item.ItemType)
@@ -754,7 +763,7 @@ namespace Client.Scenes.Views
                     return;
                 }
 
-                if (SelectedCell.Good.Cost > gold)
+                if (cost > gold)
                 {
                     GameScene.Game.ReceiveChat($"You do not have enough gold to buy a '{SelectedCell.Good.Item.ItemName}'.", MessageType.System);
                     return;
@@ -873,11 +882,6 @@ namespace Client.Scenes.Views
             }
             ItemNameLabel.Text = Good.Item.ItemName;
 
-            CostLabel.Text = Good.Cost.ToString("##,##0");
-            CostLabel.Location = new Point(GoldIcon.Location.X - CostLabel.Size.Width, GoldIcon.Location.Y + GoldIcon.Size.Height - CostLabel.Size.Height);
-
-            CostLabel.ForeColour = Good.Cost > MapObject.User.Gold ? Color.Red : Color.Yellow;
-
             switch (Good.Item.ItemType)
             {
                 case ItemType.Nothing:
@@ -918,6 +922,7 @@ namespace Client.Scenes.Views
                     break;
             }
 
+            UpdateCosts();
 
             GoodChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -951,9 +956,47 @@ namespace Client.Scenes.Views
 
         #endregion
 
+        #region Currency
+
+        public CurrencyInfo Currency
+        {
+            get => _Currency;
+            set
+            {
+                if (_Currency == value) return;
+
+                CurrencyInfo oldValue = _Currency;
+                _Currency = value;
+
+                OnCurrencyChanged(oldValue, value);
+            }
+        }
+        private CurrencyInfo _Currency;
+
+        public event EventHandler<EventArgs> CurrencyChanged;
+        public void OnCurrencyChanged(CurrencyInfo oValue, CurrencyInfo nValue)
+        {
+            if (Currency == null || Currency.DropItem == null || Currency.Type != CurrencyType.Other)
+            {
+                CurrencyIcon.LibraryFile = LibraryFile.Inventory;
+                CurrencyIcon.Index = 121;
+            }
+            else
+            {
+                CurrencyIcon.LibraryFile = LibraryFile.Ground;
+                CurrencyIcon.Index = Currency.DropItem.Image;
+            }
+
+            UpdateCosts();
+
+            CurrencyChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
         public DXItemCell ItemCell;
 
-        public DXImageControl GoldIcon;
+        public DXImageControl CurrencyIcon;
         public DXLabel ItemNameLabel, RequirementLabel, CostLabel;
 
         #endregion
@@ -962,8 +1005,6 @@ namespace Client.Scenes.Views
         {
             DrawTexture = true;
             BackColour = Color.FromArgb(25, 20, 0);
-            //  Border = true;
-            //   ForeColour = Color.White;
             BorderColour = Color.FromArgb(198, 166, 99);
             Size = new Size(219, 40);
 
@@ -997,15 +1038,13 @@ namespace Client.Scenes.Views
             };
             RequirementLabel.Location = new Point(ItemCell.Location.X*2 + ItemCell.Size.Width, ItemCell.Location.Y + ItemCell.Size.Height - RequirementLabel.Size.Height);
 
-
-            GoldIcon = new DXImageControl
+            CurrencyIcon = new DXImageControl
             {
                 LibraryFile = LibraryFile.Inventory,
                 Index = 121,
                 Parent = this,
                 IsControl = false,
             };
-            GoldIcon.Location = new Point(Size.Width - GoldIcon.Size.Width - ItemCell.Location.X - 10, Size.Height - GoldIcon.Size.Height - ItemCell.Location.X);
 
             CostLabel = new DXLabel
             {
@@ -1016,11 +1055,23 @@ namespace Client.Scenes.Views
 
         #region Methods
 
+        public void UpdateCosts()
+        {
+            if (Good == null || Currency == null) return;
+
+            var userCurrency = GameScene.Game.User.GetCurrency(Currency);
+
+            var totalCost = (int)Math.Max(1, Good.Cost * Currency.ExchangeRate);
+
+            CostLabel.Text = totalCost.ToString("##,##0");
+            CostLabel.ForeColour = totalCost > userCurrency.Amount ? Color.Red : Color.Yellow;
+            CostLabel.Location = new Point(Size.Width - CurrencyIcon.Size.Width - ItemCell.Location.X - 10 - CostLabel.Size.Width, ItemCell.Location.Y + ItemCell.Size.Height - RequirementLabel.Size.Height);
+
+            CurrencyIcon.Location = new Point(Size.Width - CurrencyIcon.Size.Width - ItemCell.Location.X - 10, Size.Height - CurrencyIcon.Size.Height - ItemCell.Location.X);
+        }
+
         public void UpdateColours()
         {
-
-            CostLabel.ForeColour = Good.Cost > MapObject.User.Gold ? Color.Red : Color.Yellow;
-
             switch (Good.Item.ItemType)
             {
                 case ItemType.Consumable:
@@ -1039,10 +1090,6 @@ namespace Client.Scenes.Views
                     RequirementLabel.ForeColour = GameScene.Game.CanUseItem(ItemCell.Item) ? Color.Aquamarine : Color.Red;
                     break;
             }
-
-
-
-
         }
 
         public override void OnMouseEnter()
@@ -1082,12 +1129,12 @@ namespace Client.Scenes.Views
                     ItemCell = null;
                 }
 
-                if (GoldIcon != null)
+                if (CurrencyIcon != null)
                 {
-                    if (!GoldIcon.IsDisposed)
-                        GoldIcon.Dispose();
+                    if (!CurrencyIcon.IsDisposed)
+                        CurrencyIcon.Dispose();
 
-                    GoldIcon = null;
+                    CurrencyIcon = null;
                 }
 
                 if (ItemNameLabel != null)
@@ -1124,9 +1171,63 @@ namespace Client.Scenes.Views
     {
         #region Properties
 
+        #region Currency
+
+        public CurrencyInfo Currency
+        {
+            get => _Currency;
+            set
+            {
+                if (_Currency == value) return;
+
+                CurrencyInfo oldValue = _Currency;
+                _Currency = value;
+
+                OnCurrencyChanged(oldValue, value);
+            }
+        }
+        private CurrencyInfo _Currency;
+
+        public event EventHandler<EventArgs> CurrencyChanged;
+        public void OnCurrencyChanged(CurrencyInfo oValue, CurrencyInfo nValue)
+        {     
+            if (GameScene.Game.InventoryBox == null) return;
+
+            if (IsVisible)
+                GameScene.Game.InventoryBox.Visible = true;
+
+            if (!IsVisible)
+                Grid.ClearLinks();
+
+            if (Currency == null || Currency.DropItem == null || Currency.Type != CurrencyType.Other)
+            {
+                CurrencyIcon.LibraryFile = LibraryFile.Inventory;
+                CurrencyIcon.Index = 121;
+            }
+            else
+            {
+                CurrencyIcon.LibraryFile = LibraryFile.Ground;
+                CurrencyIcon.Index = Currency.DropItem.Image;
+            }
+
+            CurrencyIcon.Location = new Point(CurrencyLabel.Location.X + CurrencyLabel.Size.Width - CurrencyIcon.Size.Width - 5, CurrencyLabel.Location.Y + ((CurrencyLabel.Size.Height - CurrencyIcon.Size.Height) / 2));
+ 
+            CurrencyChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void SetCurrency(CurrencyInfo currency)
+        {
+            Currency = currency ?? Globals.CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold);
+        }
+
+        #endregion
+
         public DXItemGrid Grid;
         public DXButton SellButton;
-        public DXLabel GoldLabel;
+        public DXLabel CurrencyLabel;
+
+        public DXImageControl CurrencyIcon;
+
         public override void OnIsVisibleChanged(bool oValue, bool nValue)
         {
             base.OnIsVisibleChanged(oValue, nValue);
@@ -1139,7 +1240,6 @@ namespace Client.Scenes.Views
             if (!IsVisible)
                 Grid.ClearLinks();
         }
-
 
         public override WindowType Type => WindowType.None;
         public override bool CustomSize => false;
@@ -1168,8 +1268,7 @@ namespace Client.Scenes.Views
                 cell.LinkChanged += Cell_LinkChanged;
             }
 
-
-            GoldLabel = new DXLabel
+            CurrencyLabel = new DXLabel
             {
                 AutoSize = false,
                 Border = true,
@@ -1197,10 +1296,19 @@ namespace Client.Scenes.Views
                 IsControl = false,
             };
 
+            CurrencyIcon = new DXImageControl
+            {
+                LibraryFile = LibraryFile.Inventory,
+                Index = 121,
+                Parent = this,
+                IsControl = false,
+            };
+            CurrencyIcon.Location = new Point(ClientArea.Left + 230, ClientArea.Bottom - 45);
+
             DXButton selectAll = new DXButton
             {
                 Label = { Text = "Select All" },
-                Location = new Point(ClientArea.X, GoldLabel.Location.Y + GoldLabel.Size.Height + 5),
+                Location = new Point(ClientArea.X, CurrencyLabel.Location.Y + CurrencyLabel.Size.Height + 5),
                 ButtonType = ButtonType.SmallButton,
                 Parent = this,
                 Size = new Size(79, SmallButtonHeight)
@@ -1218,7 +1326,7 @@ namespace Client.Scenes.Views
             SellButton = new DXButton
             {
                 Label = { Text = "Sell" },
-                Location = new Point(ClientArea.Right - 80, GoldLabel.Location.Y + GoldLabel.Size.Height + 5),
+                Location = new Point(ClientArea.Right - 80, CurrencyLabel.Location.Y + CurrencyLabel.Size.Height + 5),
                 ButtonType = ButtonType.SmallButton,
                 Parent = this,
                 Size = new Size(79, SmallButtonHeight),
@@ -1254,11 +1362,10 @@ namespace Client.Scenes.Views
                 if (cell.Link?.Item == null) continue;
 
                 count++;
-                sum += cell.Link.Item.Price(cell.LinkedCount);
+                sum += (long)(cell.Link.Item.Price(cell.LinkedCount) * Currency.ExchangeRate);
             }
 
-
-            GoldLabel.Text = sum.ToString("#,##0");
+            CurrencyLabel.Text = sum.ToString("#,##0");
 
             SellButton.Enabled = count > 0;
         }
@@ -1289,12 +1396,12 @@ namespace Client.Scenes.Views
                     SellButton = null;
                 }
 
-                if (GoldLabel != null)
+                if (CurrencyLabel != null)
                 {
-                    if (!GoldLabel.IsDisposed)
-                        GoldLabel.Dispose();
+                    if (!CurrencyLabel.IsDisposed)
+                        CurrencyLabel.Dispose();
 
-                    GoldLabel = null;
+                    CurrencyLabel = null;
                 }
             }
 
@@ -1546,12 +1653,12 @@ namespace Client.Scenes.Views
             }
             else
             {
-                GoldLabel.ForeColour = sum > MapObject.User.Gold ? Color.Red : Color.White;
+                GoldLabel.ForeColour = sum > MapObject.User.Gold.Amount ? Color.Red : Color.White;
             }
 
             GoldLabel.Text = sum.ToString("#,##0");
 
-            RepairButton.Enabled = sum <= MapObject.User.Gold && count > 0;
+            RepairButton.Enabled = sum <= MapObject.User.Gold.Amount && count > 0;
         }
         #endregion
 
@@ -3179,7 +3286,7 @@ namespace Client.Scenes.Views
 
             QuestInfo previousQuest = SelectedQuest?.QuestInfo;
 
-            _SelectedQuest = null;
+            SelectedQuest = null;
 
             UpdateScrollBar();
 
@@ -3189,7 +3296,7 @@ namespace Client.Scenes.Views
                 {
                     if (row.QuestInfo != previousQuest) continue;
 
-                    _SelectedQuest = row;
+                    SelectedQuest = row;
                     break;
                 }
             }
@@ -3367,13 +3474,59 @@ namespace Client.Scenes.Views
                 QuestIcon.Visible = true;
             }
 
-            if (UserQuest == null)
-                QuestIcon.BaseIndex = 83; //Available
-            else if (!UserQuest.IsComplete)
-                QuestIcon.BaseIndex = 85; //Completed
-            else
-                QuestIcon.BaseIndex = 93; //Current
-            
+            Color colour = Color.White;
+
+            QuestIcon icon = Library.QuestIcon.None;
+            QuestType type = QuestType.General;
+
+            if (UserQuest != null)
+            {
+                type = UserQuest.Quest.QuestType;
+                icon = UserQuest.IsComplete ? Library.QuestIcon.Complete : Library.QuestIcon.Incomplete;
+            }
+            else if (QuestInfo != null)
+            {
+                type = QuestInfo.QuestType;
+
+                icon = Library.QuestIcon.New;
+            }
+
+            int startIndex = 0;
+
+            switch (type)
+            {
+                case QuestType.General:
+                    startIndex = 16;
+                    break;
+                case QuestType.Daily:
+                    startIndex = 76;
+                    break;
+                case QuestType.Repeatable:
+                    startIndex = 16;
+                    break;
+                case QuestType.Story:
+                    startIndex = 56;
+                    break;
+                //case QuestType.Account:
+                //    startIndex = 36;
+                //    break;
+            }
+
+            switch (icon)
+            {
+                case Library.QuestIcon.New:
+                    startIndex += 0;
+                    break;
+                case Library.QuestIcon.Incomplete:
+                    startIndex = 2;
+                    break;
+                case Library.QuestIcon.Complete:
+                    startIndex += 2;
+                    break;
+            }
+
+            QuestIcon.BaseIndex = startIndex;
+
             QuestInfoChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -3446,8 +3599,8 @@ namespace Client.Scenes.Views
                 Parent = this,
                 Location = new Point(2,2),
                 Loop = true,
-                LibraryFile = LibraryFile.Interface,
-                BaseIndex = 83,
+                LibraryFile = LibraryFile.QuestIcon,
+                BaseIndex = 2,
                 FrameCount = 2,
                 AnimationDelay = TimeSpan.FromSeconds(1),
                 Visible = false,
@@ -3635,7 +3788,7 @@ namespace Client.Scenes.Views
 
         #endregion
 
-        public bool CanAdopt => GameScene.Game.User != null && SelectedCompanionInfo != null && SelectedCompanionInfo.Price <= GameScene.Game.User.Gold && !AdoptAttempted && !UnlockButton.Visible && CompanionNameValid;
+        public bool CanAdopt => GameScene.Game.User != null && SelectedCompanionInfo != null && SelectedCompanionInfo.Price <= GameScene.Game.User.Gold.Amount && !AdoptAttempted && !UnlockButton.Visible && CompanionNameValid;
 
 
         public override WindowType Type => WindowType.None;
@@ -3815,7 +3968,7 @@ namespace Client.Scenes.Views
 
             UnlockButton.Visible = !SelectedCompanionInfo.Available && !AvailableCompanions.Contains(SelectedCompanionInfo);
 
-            if (GameScene.Game.User == null || SelectedCompanionInfo == null || SelectedCompanionInfo.Price <= GameScene.Game.User.Gold)
+            if (GameScene.Game.User == null || SelectedCompanionInfo == null || SelectedCompanionInfo.Price <= GameScene.Game.User.Gold.Amount)
                 PriceLabel.ForeColour = Color.FromArgb(198, 166, 99);
             else
                 PriceLabel.ForeColour = Color.Red;
@@ -4639,7 +4792,7 @@ namespace Client.Scenes.Views
                     return;
                 }
 
-                if (GoldBox.Value > GameScene.Game.User.Gold)
+                if (GoldBox.Value > GameScene.Game.User.Gold.Amount)
                 {
                     GameScene.Game.ReceiveChat("You cannot aford to offer this amount of gold.", MessageType.System);
                     return;
@@ -4656,7 +4809,7 @@ namespace Client.Scenes.Views
         {
             SubmitButton.Enabled = false;
 
-            if (GoldBox.Value > GameScene.Game.User.Gold)
+            if (GoldBox.Value > GameScene.Game.User.Gold.Amount)
             {
                 GoldBox.BorderColour = Color.Red;
                 return;
@@ -4757,7 +4910,6 @@ namespace Client.Scenes.Views
 
         #endregion
     }
-
 
     public sealed class NPCItemFragmentDialog : DXWindow
     {
@@ -4895,11 +5047,11 @@ namespace Client.Scenes.Views
                 count++;
             }
 
-            CostLabel.ForeColour = sum > MapObject.User.Gold ? Color.Red : Color.White;
+            CostLabel.ForeColour = sum > MapObject.User.Gold.Amount ? Color.Red : Color.White;
 
             CostLabel.Text = sum.ToString("#,##0");
 
-            FragmentButton.Enabled = sum <= MapObject.User.Gold && count > 0;
+            FragmentButton.Enabled = sum <= MapObject.User.Gold.Amount && count > 0;
         }
 
         #endregion
@@ -4941,7 +5093,6 @@ namespace Client.Scenes.Views
 
         #endregion
     }
-
 
     public sealed class NPCMasterRefineDialog : DXWindow
     {
@@ -6317,7 +6468,7 @@ namespace Client.Scenes.Views
                 count++;
             }
 
-            CostLabel.ForeColour = count > MapObject.User.Gold ? Color.Red : Color.White;
+            CostLabel.ForeColour = count > MapObject.User.Gold.Amount ? Color.Red : Color.White;
 
             //CostLabel.Text = count.ToString("#,##0");
 
@@ -6363,7 +6514,6 @@ namespace Client.Scenes.Views
 
         #endregion
     }
-
 
     public sealed class NPCAccessoryResetDialog : DXWindow
     {
@@ -6605,7 +6755,7 @@ namespace Client.Scenes.Views
             }
         }
 
-        public bool CanCraft => Cost <= GameScene.Game.User.Gold && TemplateCell.Grid[0].Link != null && RequiredClass != RequiredClass.None;
+        public bool CanCraft => Cost <= GameScene.Game.User.Gold.Amount && TemplateCell.Grid[0].Link != null && RequiredClass != RequiredClass.None;
 
         public NPCWeaponCraftWindow()
         {
@@ -7444,7 +7594,7 @@ namespace Client.Scenes.Views
                 return;
             }
 
-            if (MapObject.User.Gold < 50000)
+            if (MapObject.User.Gold.Amount < 50000)
             {
                 RefineButton.Enabled = false;
                 return;
@@ -7457,7 +7607,7 @@ namespace Client.Scenes.Views
 
             int amount = 50000;
 
-            CostLabel.ForeColour = amount > MapObject.User.Gold ? Color.Red : Color.White;
+            CostLabel.ForeColour = amount > MapObject.User.Gold.Amount ? Color.Red : Color.White;
 
             CostLabel.Text = amount.ToString("#,##0");
 

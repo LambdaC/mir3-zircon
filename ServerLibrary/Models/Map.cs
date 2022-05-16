@@ -85,7 +85,7 @@ namespace Server.Models
         {
             CreateGuards();
 
-            LastPlayer = DateTime.Now;
+            LastPlayer = DateTime.UtcNow;
         }
 
         private void CreateGuards()
@@ -106,9 +106,9 @@ namespace Server.Models
 
         public void Process()
         {
-            if (LastPlayer.AddMinutes(1) < DateTime.Now && Players.Any())
+            if (LastPlayer.AddMinutes(1) < DateTime.UtcNow && Players.Any())
             {
-                LastPlayer = DateTime.Now;
+                LastPlayer = DateTime.UtcNow;
             }
         }
 
@@ -268,6 +268,11 @@ namespace Server.Models
 
         public void DoSpawn(bool eventSpawn)
         {
+            if (CurrentMap.Instance != null)
+            {
+
+            }
+
             if (!eventSpawn)
             {
                 if (Info.EventSpawn || SEnvir.Now < NextSpawn) return;
@@ -412,6 +417,29 @@ namespace Server.Models
 
                 Map map = SEnvir.GetMap(movement.DestinationRegion.Map, Map.Instance, Map.InstanceIndex);
 
+                if (movement.NeedInstance != null)
+                {
+                    if (ob.Race != ObjectType.Player) break;
+
+                    if (Map.Instance != null) //Moving from instance
+                    {
+                        map = SEnvir.GetMap(movement.DestinationRegion.Map, null, 0);
+                    }
+                    else //Moving to instance
+                    {
+                        var (index, result) = ((PlayerObject)ob).GetInstance(movement.NeedInstance);
+
+                        if (result != InstanceResult.Success)
+                        {
+                            ((PlayerObject)ob).SendInstanceMessage(movement.NeedInstance, result);
+                            break;
+                        }
+
+                        map = SEnvir.GetMap(movement.DestinationRegion.Map, movement.NeedInstance, index.Value);
+                    }
+                }
+
+                if (map == null) break;
 
                 Cell cell = map.GetCell(movement.DestinationRegion.PointList[SEnvir.Random.Next(movement.DestinationRegion.PointList.Count)]);
 
@@ -491,7 +519,6 @@ namespace Server.Models
 
                             break;
                         }
-
                     }
 
                     if (movement.NeedItem != null)
@@ -506,6 +533,37 @@ namespace Server.Models
                         }
 
                         player.TakeItem(movement.NeedItem, 1);
+                    }
+
+                    foreach (UserQuest quest in player.Character.Quests)
+                    {
+                        //For Each Active Quest
+                        if (quest.Completed) continue;
+                        bool changed = false;
+
+                        foreach (QuestTask task in quest.QuestInfo.Tasks)
+                        {
+                            if (task.Task != QuestTaskType.Region || task.RegionParameter == null) continue;
+
+                            if (task.RegionParameter != movement.SourceRegion) continue;
+
+                            UserQuestTask userTask = quest.Tasks.FirstOrDefault(x => x.Task == task);
+
+                            if (userTask == null)
+                            {
+                                userTask = SEnvir.UserQuestTaskList.CreateNewObject();
+                                userTask.Task = task;
+                                userTask.Quest = quest;
+                            }
+
+                            if (userTask.Completed) continue;
+
+                            userTask.Amount = 1;
+                            changed = true;
+                        }
+
+                        if (changed)
+                            player.Enqueue(new S.QuestChanged { Quest = quest.ToClientInfo() });
                     }
 
                     switch (movement.Effect)
@@ -525,7 +583,6 @@ namespace Server.Models
                             player.RefreshStats();
                             break;
                     }
-
                 }
 
                 return cell.GetMovement(ob);

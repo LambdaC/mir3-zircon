@@ -228,6 +228,8 @@ namespace Client.Models
 
         public bool DrawWeapon;
 
+        public bool Fishing;
+
 
         public int CharacterIndex;
 
@@ -326,6 +328,10 @@ namespace Client.Models
                 case 5:
                     CEnvir.LibraryList.TryGetValue(LibraryFile.HorseDark, out HorseShapeLibrary);
                     CEnvir.LibraryList.TryGetValue(LibraryFile.HorseDarkEffect, out HorseShapeLibrary2);
+                    break;
+                case 6:
+                    CEnvir.LibraryList.TryGetValue(LibraryFile.HorseRoyal, out HorseShapeLibrary);
+                    CEnvir.LibraryList.TryGetValue(LibraryFile.HorseRoyalEffect, out HorseShapeLibrary2);
                     break;
             }
 
@@ -477,6 +483,19 @@ namespace Client.Models
 
                     if (Horse != HorseType.None)
                         animation = MirAnimation.HorseStanding;
+
+                    if (Fishing)
+                    {
+                        if (CurrentAnimation == MirAnimation.FishingCast || CurrentAnimation == MirAnimation.FishingWait)
+                            animation = MirAnimation.FishingWait;
+                        else
+                            animation = MirAnimation.FishingCast;
+                    }
+                    else
+                    {
+                        if (CurrentAnimation == MirAnimation.FishingWait)
+                            animation = MirAnimation.FishingReel;
+                    }
 
                     if (VisibleBuffs.Contains(BuffType.DragonRepulse))
                         animation = MirAnimation.DragonRepulseMiddle;
@@ -656,6 +675,11 @@ namespace Client.Models
                         case MirAnimation.HorseStruck:
                             ArmourShift = 80;
                             break;
+                        case MirAnimation.FishingCast:
+                        case MirAnimation.FishingWait:
+                        case MirAnimation.FishingReel:
+                            ArmourShift = 80;
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
@@ -769,7 +793,7 @@ namespace Client.Models
         {
             if (BodyLibrary == null) return;
 
-            DXManager.SetBlend(true, 0.60F);
+            DXManager.SetBlend(true, 0.60F, BlendMode.HIGHLIGHT);
             DrawBody(false);
             DXManager.SetBlend(false);
         }
@@ -907,7 +931,15 @@ namespace Client.Models
                     case MirAnimation.HorseWalking:
                     case MirAnimation.HorseRunning:
                     case MirAnimation.HorseStruck:
-                        HorseLibrary?.Draw(HorseFrame, DrawX, DrawY, Color.Black, true, 0.5F, ImageType.Shadow);
+                        switch (HorseShape)
+                        {
+                            default:
+                                HorseLibrary?.Draw(HorseFrame, DrawX, DrawY, Color.Black, true, 0.5F, ImageType.Shadow);
+                                break;
+                            case 6:
+                                HorseShapeLibrary?.Draw(DrawFrame, DrawX, DrawY, Color.Black, true, 0.5F, ImageType.Shadow);
+                                break;
+                        }
                         break;
                     default:
                         DrawShadow2(l, t, r, b);
@@ -942,6 +974,11 @@ namespace Client.Models
                             HorseShapeLibrary?.Draw(DrawFrame, DrawX, DrawY, Color.White, true, Opacity, ImageType.Image);
                             if (shadow)
                                 HorseShapeLibrary2?.DrawBlend(DrawFrame, DrawX, DrawY, Color.White, true, Opacity, ImageType.Image);
+                            break;
+                        case 6:
+                            HorseShapeLibrary?.Draw(DrawFrame, DrawX, DrawY, Color.White, true, Opacity, ImageType.Image);
+                            //if (shadow)
+                            //    HorseShapeLibrary2?.DrawBlend(DrawFrame, DrawX, DrawY, Color.White, true, Opacity, ImageType.Image);
                             break;
 
                     }

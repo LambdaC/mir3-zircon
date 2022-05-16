@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Linq;
 using Library;
 using Library.Network;
 using Library.SystemModels;
@@ -73,9 +74,15 @@ namespace Server.Models
                                 return;
                             }
 
-                            var index = SEnvir.LoadInstance(action.InstanceParameter1);
+                            //TODO - Add conditions to npc instance moving
 
-                            if (index == null) return;
+                            var (index, result) = ob.GetInstance(action.InstanceParameter1);
+
+                            if (result != InstanceResult.Success)
+                            {
+                                ob.SendInstanceMessage(action.InstanceParameter1, result);
+                                return;
+                            }
 
                             ob.Teleport(action.InstanceParameter1.ConnectRegion, action.InstanceParameter1, index.Value);
                         }
@@ -90,20 +97,20 @@ namespace Server.Models
                         }
                         break;
                     case NPCActionType.TakeGold:
-                        ob.Gold -= action.IntParameter1;
+                        ob.Gold.Amount -= action.IntParameter1;
                         ob.GoldChanged();
                         break;
                     case NPCActionType.ChangeElement:
                         UserItem weapon = ob.Equipment[(int) EquipmentSlot.Weapon];
 
-                        S.ItemStatsChanged result = new S.ItemStatsChanged { GridType = GridType.Equipment, Slot = (int)EquipmentSlot.Weapon, NewStats = new Stats() };
-                        result.NewStats[Stat.WeaponElement] = action.IntParameter1 - weapon.Stats[Stat.WeaponElement];
+                        S.ItemStatsChanged changedResult = new S.ItemStatsChanged { GridType = GridType.Equipment, Slot = (int)EquipmentSlot.Weapon, NewStats = new Stats() };
+                        changedResult.NewStats[Stat.WeaponElement] = action.IntParameter1 - weapon.Stats[Stat.WeaponElement];
 
                         weapon.AddStat(Stat.WeaponElement, action.IntParameter1 - weapon.Stats[Stat.WeaponElement], StatSource.Refine);
                         weapon.StatsChanged();
                         ob.RefreshStats();
 
-                        ob.Enqueue(result);
+                        ob.Enqueue(changedResult);
                         break;
                     case NPCActionType.ChangeHorse:
                         ob.Character.Account.Horse = (HorseType) action.IntParameter1;
@@ -116,9 +123,9 @@ namespace Server.Models
                         break;
                     case NPCActionType.GiveGold:
 
-                        long gold = ob.Gold + action.IntParameter1;
+                        long gold = ob.Gold.Amount + action.IntParameter1;
                         
-                        ob.Gold = (long) gold;
+                        ob.Gold.Amount = (long) gold;
                         ob.GoldChanged();
 
                         break;
@@ -182,6 +189,36 @@ namespace Server.Models
                         if (ob.Level >= 86 + ob.Character.Rebirth)
                             ob.NPCRebirth();
                         break;
+                    case NPCActionType.GiveCurrency:
+                        {
+                            if (action.StringParameter1 == null) continue;
+
+                            var info = SEnvir.CurrencyInfoList.Binding.FirstOrDefault(x => string.Equals(x.Name, action.StringParameter1, StringComparison.OrdinalIgnoreCase));
+                            if (info == null) continue;
+
+                            var userCurrency = ob.GetCurrency(info);
+
+                            var amount = userCurrency.Amount + action.IntParameter1;
+
+                            userCurrency.Amount = amount;
+                            ob.CurrencyChanged(userCurrency);
+                        }
+                        break;
+                    case NPCActionType.TakeCurrency:
+                        {
+                            if (action.StringParameter1 == null) continue;
+
+                            var info = SEnvir.CurrencyInfoList.Binding.FirstOrDefault(x => string.Equals(x.Name, action.StringParameter1, StringComparison.OrdinalIgnoreCase));
+                            if (info == null) continue;
+
+                            var userCurrency = ob.GetCurrency(info);
+
+                            var amount = userCurrency.Amount - action.IntParameter1;
+
+                            userCurrency.Amount = amount;
+                            ob.CurrencyChanged(userCurrency);
+                        }
+                        break;
                 }
             }
         }
@@ -201,7 +238,7 @@ namespace Server.Models
                         if (!Compare(check.Operator, (int)ob.Class, check.IntParameter1)) return false;
                         break;
                     case NPCCheckType.Gold:
-                        if (!Compare(check.Operator, ob.Gold, check.IntParameter1)) return false;
+                        if (!Compare(check.Operator, ob.Gold.Amount, check.IntParameter1)) return false;
                         break;
 
                     case NPCCheckType.HasWeapon:
@@ -376,6 +413,17 @@ namespace Server.Models
                     case NPCCheckType.Random:
                         if (!Compare(check.Operator, SEnvir.Random.Next(check.IntParameter1), check.IntParameter2)) return false;
                         break;
+
+                    case NPCCheckType.Currency:
+                        if (check.StringParameter1 == null) continue;
+
+                        var info = SEnvir.CurrencyInfoList.Binding.FirstOrDefault(x => string.Equals(x.Name, check.StringParameter1, StringComparison.OrdinalIgnoreCase));
+                        if (info == null) continue;
+
+                        var userCurrency = ob.GetCurrency(info);
+
+                        if (!Compare(check.Operator, userCurrency.Amount, check.IntParameter1)) return false;
+                        break;
                 }
             }
             return true;
@@ -418,6 +466,58 @@ namespace Server.Models
 
         public override bool CanBeSeenBy(PlayerObject ob)
         {
+            foreach (NPCRequirement requirement in NPCInfo.Requirements)
+            {
+                switch (requirement.Requirement)
+                {
+                    case NPCRequirementType.MaxLevel:
+                        if (Level > requirement.IntParameter1) return false;
+                        break;
+                    case NPCRequirementType.MinLevel:
+                        if (Level < requirement.IntParameter1) return false;
+                        break;
+                    case NPCRequirementType.Accepted:
+                        if (ob.Character.Quests.Any(x => x.QuestInfo == requirement.QuestParameter)) break;
+
+                        return false;
+                    case NPCRequirementType.NotAccepted:
+                        if (ob.Character.Quests.Any(x => x.QuestInfo == requirement.QuestParameter)) return false;
+
+                        break;
+                    case NPCRequirementType.HaveCompleted:
+                        if (ob.Character.Quests.Any(x => x.QuestInfo == requirement.QuestParameter && x.Completed)) break;
+
+                        return false;
+                    case NPCRequirementType.HaveNotCompleted:
+                        if (ob.Character.Quests.Any(x => x.QuestInfo == requirement.QuestParameter && x.Completed)) return false;
+
+                        break;
+                    case NPCRequirementType.Class:
+                        switch (ob.Class)
+                        {
+                            case MirClass.Warrior:
+                                if ((requirement.Class & RequiredClass.Warrior) != RequiredClass.Warrior) return false;
+                                break;
+                            case MirClass.Wizard:
+                                if ((requirement.Class & RequiredClass.Wizard) != RequiredClass.Wizard) return false;
+                                break;
+                            case MirClass.Taoist:
+                                if ((requirement.Class & RequiredClass.Taoist) != RequiredClass.Taoist) return false;
+                                break;
+                            case MirClass.Assassin:
+                                if ((requirement.Class & RequiredClass.Assassin) != RequiredClass.Assassin) return false;
+                                break;
+                        }
+                        break;
+                    case NPCRequirementType.DaysOfWeek:
+                        //DaysOfWeek currentDayOfWeek = (DaysOfWeek)Math.Pow(2, (double)DateTime.UtcNow.DayOfWeek);
+                        var flag = (DaysOfWeek)Enum.ToObject(typeof(DaysOfWeek), 1 << (int)DateTime.UtcNow.DayOfWeek);
+
+                        if (!requirement.DaysOfWeek.HasFlag(flag)) return false;
+                        break;
+                }
+            }
+
             return Visible && base.CanBeSeenBy(ob);
         }
 

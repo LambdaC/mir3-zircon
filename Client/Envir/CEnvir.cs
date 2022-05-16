@@ -146,7 +146,7 @@ namespace Client.Envir
             RenderGame();
 
             if (Config.LimitFPS)
-                Thread.Sleep(1); ;
+                Thread.Sleep(1);
         }
         private static void UpdateGame()
         {
@@ -164,7 +164,6 @@ namespace Client.Envir
             }
 
             Connection?.Process();
-            //  DXControl.ActiveScene?.Process();
             DXControl.ActiveScene?.Process();
 
             string debugText = $"FPS: {FPSCount}";
@@ -174,6 +173,8 @@ namespace Client.Envir
 
             if (DXControl.FocusControl != null)
                 debugText += $", Focus Control: {DXControl.FocusControl.GetType().Name}";
+            
+            debugText += $", Mouse: {CEnvir.MouseLocation}";
 
             if (GameScene.Game != null)
             {
@@ -187,8 +188,7 @@ namespace Client.Envir
             }
             debugText += $", DPS: {DPSCount}";
 
-
-            DXControl.DebugLabel.Text = debugText;
+            string connectionText = string.Empty;
 
             if (Connection != null)
             {
@@ -196,7 +196,6 @@ namespace Client.Envir
                 const decimal MB = KB * 1024;
 
                 string sent, received;
-
 
                 if (Connection.TotalBytesSent > MB)
                     sent = $"{Connection.TotalBytesSent / MB:#,##0.0}MB";
@@ -212,14 +211,32 @@ namespace Client.Envir
                 else
                     received = $"{Connection.TotalBytesReceived:#,##0}B";
 
-                DXControl.PingLabel.Text = $"Ping: {Connection.Ping}, Sent: {sent}, Received: {received}";
-                DXControl.PingLabel.Location = new Point(DXControl.DebugLabel.DisplayArea.Right + 5, DXControl.DebugLabel.DisplayArea.Y);
+                connectionText = $"Ping: {Connection.Ping}, Sent: {sent}, Received: {received}";
+            }
+
+            if (Config.FullScreen)
+            {
+                DXControl.DebugLabel.Text = debugText;
+
+                DXControl.DebugLabel.IsVisible = Config.DebugLabel;
+                DXControl.PingLabel.IsVisible = Config.DebugLabel;
+
+                if (Connection != null)
+                {
+                    DXControl.PingLabel.Text = connectionText;
+                    DXControl.PingLabel.Location = new Point(DXControl.DebugLabel.DisplayArea.Right + 5, DXControl.DebugLabel.DisplayArea.Y);
+                }
             }
             else
             {
-                DXControl.PingLabel.Text = String.Empty;
-            }
+                CEnvir.Target.Text = $"{Globals.ClientName} - {debugText} - {connectionText}";
 
+                DXControl.PingLabel.Text = string.Empty;
+                DXControl.DebugLabel.Text = string.Empty;
+
+                DXControl.DebugLabel.Visible = false;
+                DXControl.PingLabel.Visible = false;
+            }
 
             if (DXControl.MouseControl != null && DXControl.ActiveScene != null)
             {
@@ -309,6 +326,7 @@ namespace Client.Envir
                 Globals.ItemInfoList = Session.GetCollection<ItemInfo>();
                 Globals.MagicInfoList = Session.GetCollection<MagicInfo>();
                 Globals.MapInfoList = Session.GetCollection<MapInfo>();
+                Globals.CurrencyInfoList = Session.GetCollection<CurrencyInfo>();
                 Globals.InstanceInfoList = Session.GetCollection<InstanceInfo>();
                 Globals.NPCPageList = Session.GetCollection<NPCPage>();
                 Globals.MonsterInfoList = Session.GetCollection<MonsterInfo>();
@@ -324,7 +342,7 @@ namespace Client.Envir
                 WindowSettings = Session.GetCollection<WindowSetting>();
                 CastleInfoList = Session.GetCollection<CastleInfo>();
 
-                Globals.GoldInfo = Globals.ItemInfoList.Binding.FirstOrDefault(x => x.Effect == ItemEffect.Gold);
+                Globals.GoldInfo = Globals.CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold).DropItem;
 
                 CheckKeyBinds();
 
@@ -432,6 +450,11 @@ namespace Client.Envir
 
             switch (action)
             {
+                //case KeyBindAction.FishingTemp:
+                //    bind.Category = "Temp";
+                //    bind.Key1 = Keys.F;
+                //    bind.Control1 = true;
+                //    break;
                 case KeyBindAction.ConfigWindow:
                     bind.Category = "Windows";
                     bind.Key1 = Keys.O;
@@ -781,6 +804,11 @@ namespace Client.Envir
                     bind.Key1 = Keys.W;
                     bind.Control1 = true;
                     break;
+                case KeyBindAction.CurrencyWindow:
+                    bind.Category = "Windows";
+                    bind.Key1 = Keys.C;
+                    bind.Control1 = true;
+                    break;
             }
         }
 
@@ -904,6 +932,11 @@ namespace Client.Envir
                 default:
                     return key.ToString();
             }
+        }
+
+        public static bool IsCurrencyItem(ItemInfo info)
+        {
+            return Globals.CurrencyInfoList.Binding.FirstOrDefault(x => x.DropItem == info) != null;
         }
     }
 }

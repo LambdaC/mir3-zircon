@@ -121,6 +121,12 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Views\CurrencyInfoView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Views\CurrencyInfoView.Designer.cs">
+      <DependentUpon>CurrencyInfoView.cs</DependentUpon>
+    </Compile>
     <Compile Include="Views\GameStoreSaleView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -342,6 +348,9 @@
       <DependentUpon>SMain.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="Views\CurrencyInfoView.resx">
+      <DependentUpon>CurrencyInfoView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Views\GameStoreSaleView.resx">
       <DependentUpon>GameStoreSaleView.cs</DependentUpon>
     </EmbeddedResource>
@@ -459,6 +468,10 @@
     <ProjectReference Include="..\LibraryCore\LibraryCore.csproj">
       <Project>{c47f32fa-4c04-4143-b4fe-623d4b014d0d}</Project>
       <Name>LibraryCore</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PluginCore\PluginCore.csproj">
+      <Project>{9ec9f47e-a443-471e-b0d5-1367772b2a0e}</Project>
+      <Name>PluginCore</Name>
     </ProjectReference>
     <ProjectReference Include="..\ServerLibrary\ServerLibrary.csproj">
       <Project>{42e44f8e-c98b-4008-958a-5c8cb3d02b8d}</Project>

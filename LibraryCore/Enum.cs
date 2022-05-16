@@ -119,6 +119,20 @@ namespace Library
         Food = 3,
     }
 
+    [Flags]
+    public enum DaysOfWeek
+    {
+        None = 0,
+        Sunday = 1,
+        Monday = 2,
+        Tuesday = 4,
+        Wednesday = 8,
+        Thursday = 16,
+        Friday = 32,
+        Saturday = 64,
+        Weekday = Monday | Tuesday | Wednesday | Thursday | Friday,
+        Weekend = Saturday | Sunday
+    }
 
     public enum GridType
     {
@@ -279,6 +293,13 @@ namespace Library
         Fight,
     }
 
+    public enum InstanceType : byte
+    {
+        Solo,
+        Group,
+        Guild
+    }
+
     public enum ObjectType : byte
     {
         None, //Error
@@ -391,6 +412,9 @@ namespace Library
         DragonRepulseMiddle,
         DragonRepulseEnd,
 
+        FishingCast,
+        FishingWait,
+        FishingReel
     }
     
 
@@ -1085,7 +1109,7 @@ namespace Library
     {
         None,
 
-        Gold = 1,
+        //Gold = 1,
         Experience = 2,
         CompanionTicket = 3,
         BasicCompanionBag = 4,
@@ -1144,6 +1168,14 @@ namespace Library
         RefineExtractor = 92,
     }
 
+    public enum CurrencyType
+    {
+        Gold,
+        GameGold,
+        HuntGold,
+        Other
+    }
+
     [Flags]
     public enum UserItemFlags
     {
@@ -1167,6 +1199,9 @@ namespace Library
         White,
         Red,
         Black,
+        WhiteUnicorn,
+        RedUnicorn
+
     }
 
     [Flags]
@@ -1186,18 +1221,52 @@ namespace Library
         StartWar = 128,
     }
 
-    [Flags]
+    public enum NPCRequirementType
+    {
+        MinLevel,
+        MaxLevel,
+        Accepted,
+        NotAccepted,
+        HaveCompleted,
+        HaveNotCompleted,
+        Class,
+        DaysOfWeek,
+    }
+
+    public enum QuestType
+    {
+        General = 0,
+        Daily = 1,
+        //Weekly = 2,
+        Repeatable = 3,
+        Story = 4,
+        //Account = 5
+    }
+
     public enum QuestIcon
     {
         None = 0,
 
-        NewQuest = 1,
-        QuestIncomplete = 2,
-        QuestComplete = 4,
+        New,
+        Incomplete,
+        Complete,
+    }
 
+    public enum QuestRequirementType
+    {
+        MinLevel,
+        MaxLevel,
+        NotAccepted,
+        HaveCompleted,
+        HaveNotCompleted,
+        Class,
+    }
 
-        NewRepeatable = 8,
-        RepeatableComplete = 16,
+    public enum QuestTaskType
+    {
+        KillMonster,
+        GainItem,
+        Region
     }
 
     public enum MovementEffect
@@ -1457,15 +1526,17 @@ namespace Library
     {
         Invalid,
         InsufficientLevel,
+        NotInGroup,
+        NotInGuild,
         TooFewInGroup,
         TooManyInGroup,
+        ConnectRegionNotSet,
         NoSlots,
+        UserCooldown,
+        GuildCooldown,
         NoMap,
         Success
     }
-
-
-
 
     #endregion
 

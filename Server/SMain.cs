@@ -15,6 +15,7 @@ using DevExpress.XtraGrid.Views.Grid;
 using Library;
 using Library.SystemModels;
 using MirDB;
+using PluginCore;
 using Server.DBModels;
 using Server.Envir;
 using Server.Views;
@@ -25,13 +26,29 @@ namespace Server
     {
         public List<Control> Windows = new List<Control>();
         public static Session Session;
+
         public SMain()
         {
             InitializeComponent();
+            SetupPlugin();
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls |
                                                    SecurityProtocolType.Tls11 |
                                                    SecurityProtocolType.Tls12;
+        }
+
+        private void SetupPlugin()
+        {
+            PluginLoader.Init();
+
+            PluginLoader.Loader.Log += PluginLoader_Log;
+
+            PluginLoader.LoadIntegrated(this.ribbonPage3);
+        }
+
+        private void PluginLoader_Log(object sender, PluginCore.LogEventArgs e)
+        {
+            SEnvir.Log(e.Message);
         }
 
         private void SMain_Load(object sender, EventArgs e)
@@ -67,6 +84,8 @@ namespace Server
                         BaseStatList = Session.GetCollection<BaseStat>();
                         MapRegionList = Session.GetCollection<MapRegion>();*/
 
+            CurrencyInfoView.AddDefaultCurrencies();
+
             UpdateInterface();
 
             Application.Idle += Application_Idle;
@@ -76,9 +95,11 @@ namespace Server
         {
             try
             {
+                //temp - move this in to a timer??
+                MapViewer.CurrentViewer?.Process();
+
                 while (AppStillIdle)
                 {
-                    MapViewer.CurrentViewer?.Process();
                     Thread.Sleep(1);
                 }
             }
@@ -86,7 +107,6 @@ namespace Server
             {
                 SEnvir.Log(ex.ToString());
             }
-
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -380,6 +400,11 @@ namespace Server
         private void MagicInfoButton_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
         {
             ShowView(typeof(MagicInfoView));
+        }
+
+        private void CurrencyInfoButton_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
+        {
+            ShowView(typeof(CurrencyInfoView));
         }
 
         private void CharacterInfoButton_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)

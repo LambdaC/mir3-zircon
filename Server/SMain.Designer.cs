@@ -35,13 +35,11 @@
             this.skinRibbonGalleryBarItem1 = new DevExpress.XtraBars.SkinRibbonGalleryBarItem();
             this.StartServerButton = new DevExpress.XtraBars.BarButtonItem();
             this.StopServerButton = new DevExpress.XtraBars.BarButtonItem();
-            this.barButtonItem1 = new DevExpress.XtraBars.BarButtonItem();
             this.ribbonPage1 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             this.ribbonPageGroup1 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             this.ribbonPage2 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             this.ribbonPageGroup2 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             this.ribbonPage3 = new DevExpress.XtraBars.Ribbon.RibbonPage();
-            this.ribbonPageGroup3 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             this.navBarControl1 = new DevExpress.XtraNavBar.NavBarControl();
             this.navBarGroup1 = new DevExpress.XtraNavBar.NavBarGroup();
             this.LogNavButton = new DevExpress.XtraNavBar.NavBarItem();
@@ -51,7 +49,6 @@
             this.InstanceInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.ItemInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.MonsterInfoButton = new DevExpress.XtraNavBar.NavBarItem();
-            this.MonsterInfoStatButton = new DevExpress.XtraNavBar.NavBarItem();
             this.MagicInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.MapRegionButton = new DevExpress.XtraNavBar.NavBarItem();
             this.MovementInfoButton = new DevExpress.XtraNavBar.NavBarItem();
@@ -60,6 +57,7 @@
             this.DropInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.BaseStatButton = new DevExpress.XtraNavBar.NavBarItem();
             this.ItemInfoStatButton = new DevExpress.XtraNavBar.NavBarItem();
+            this.MonsterInfoStatButton = new DevExpress.XtraNavBar.NavBarItem();
             this.SetInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.navBarItem5 = new DevExpress.XtraNavBar.NavBarItem();
             this.NPCInfoButton = new DevExpress.XtraNavBar.NavBarItem();
@@ -69,6 +67,7 @@
             this.EventInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.CastleInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.CompanionInfoButton = new DevExpress.XtraNavBar.NavBarItem();
+            this.CurrencyInfoButton = new DevExpress.XtraNavBar.NavBarItem();
             this.ConfigButton = new DevExpress.XtraNavBar.NavBarItem();
             this.navBarGroup3 = new DevExpress.XtraNavBar.NavBarGroup();
             this.AccountInfoButton = new DevExpress.XtraNavBar.NavBarItem();
@@ -100,6 +99,7 @@
             this.barDockControlLeft = new DevExpress.XtraBars.BarDockControl();
             this.barDockControlRight = new DevExpress.XtraBars.BarDockControl();
             this.InterfaceTimer = new System.Windows.Forms.Timer(this.components);
+            this.navBarItem6 = new DevExpress.XtraNavBar.NavBarItem();
             ((System.ComponentModel.ISupportInitialize)(this.ribbonControl1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.navBarControl1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.DManager)).BeginInit();
@@ -118,8 +118,7 @@
             this.ribbonControl1.ExpandCollapseItem,
             this.skinRibbonGalleryBarItem1,
             this.StartServerButton,
-            this.StopServerButton,
-            this.barButtonItem1});
+            this.StopServerButton});
             this.ribbonControl1.Location = new System.Drawing.Point(0, 0);
             this.ribbonControl1.MaxItemId = 9;
             this.ribbonControl1.MdiMergeStyle = DevExpress.XtraBars.Ribbon.RibbonMdiMergeStyle.Always;
@@ -162,15 +161,6 @@
             this.StopServerButton.Name = "StopServerButton";
             this.StopServerButton.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.StopServerButton_ItemClick);
             // 
-            // barButtonItem1
-            // 
-            this.barButtonItem1.Caption = "Map Viewer";
-            this.barButtonItem1.Id = 6;
-            this.barButtonItem1.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("barButtonItem1.ImageOptions.Image")));
-            this.barButtonItem1.ImageOptions.LargeImage = ((System.Drawing.Image)(resources.GetObject("barButtonItem1.ImageOptions.LargeImage")));
-            this.barButtonItem1.Name = "barButtonItem1";
-            this.barButtonItem1.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.barButtonItem1_ItemClick_1);
-            // 
             // ribbonPage1
             // 
             this.ribbonPage1.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] {
@@ -201,18 +191,8 @@
             // 
             // ribbonPage3
             // 
-            this.ribbonPage3.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] {
-            this.ribbonPageGroup3});
             this.ribbonPage3.Name = "ribbonPage3";
-            this.ribbonPage3.Text = "Commands";
-            // 
-            // ribbonPageGroup3
-            // 
-            this.ribbonPageGroup3.AllowTextClipping = false;
-            this.ribbonPageGroup3.ItemLinks.Add(this.barButtonItem1);
-            this.ribbonPageGroup3.Name = "ribbonPageGroup3";
-            this.ribbonPageGroup3.ShowCaptionButton = false;
-            this.ribbonPageGroup3.Text = "Testing";
+            this.ribbonPage3.Text = "Plugins";
             // 
             // navBarControl1
             // 
@@ -227,9 +207,9 @@
             this.navBarItem1,
             this.ConfigButton,
             this.MapInfoButton,
-            this.InstanceInfoButton,
             this.MonsterInfoButton,
             this.ItemInfoButton,
+            this.InstanceInfoButton,
             this.NPCInfoButton,
             this.NPCPageButton,
             this.MagicInfoButton,
@@ -237,6 +217,7 @@
             this.CharacterInfoButton,
             this.MovementInfoButton,
             this.ItemInfoStatButton,
+            this.MonsterInfoStatButton,
             this.SetInfoButton,
             this.StoreInfoButton,
             this.BaseStatButton,
@@ -248,7 +229,6 @@
             this.QuestInfoButton,
             this.CompanionInfoButton,
             this.EventInfoButton,
-            this.MonsterInfoStatButton,
             this.CastleInfoButton,
             this.PaymentButton,
             this.StoreSalesButton,
@@ -256,7 +236,8 @@
             this.navBarItem2,
             this.navBarItem3,
             this.navBarItem4,
-            this.navBarItem5});
+            this.navBarItem5,
+            this.CurrencyInfoButton});
             this.navBarControl1.Location = new System.Drawing.Point(0, 144);
             this.navBarControl1.Name = "navBarControl1";
             this.navBarControl1.OptionsNavPane.ExpandedWidth = 144;
@@ -298,7 +279,6 @@
             new DevExpress.XtraNavBar.NavBarItemLink(this.InstanceInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.ItemInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.MonsterInfoButton),
-            new DevExpress.XtraNavBar.NavBarItemLink(this.MonsterInfoStatButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.MagicInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.MapRegionButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.MovementInfoButton),
@@ -307,6 +287,7 @@
             new DevExpress.XtraNavBar.NavBarItemLink(this.DropInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.BaseStatButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.ItemInfoStatButton),
+            new DevExpress.XtraNavBar.NavBarItemLink(this.MonsterInfoStatButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.SetInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.navBarItem5),
             new DevExpress.XtraNavBar.NavBarItemLink(this.NPCInfoButton),
@@ -316,6 +297,7 @@
             new DevExpress.XtraNavBar.NavBarItemLink(this.EventInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.CastleInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.CompanionInfoButton),
+            new DevExpress.XtraNavBar.NavBarItemLink(this.CurrencyInfoButton),
             new DevExpress.XtraNavBar.NavBarItemLink(this.ConfigButton)});
             this.navBarGroup2.Name = "navBarGroup2";
             // 
@@ -346,13 +328,6 @@
             this.MonsterInfoButton.ImageOptions.SmallImage = ((System.Drawing.Image)(resources.GetObject("MonsterInfoButton.ImageOptions.SmallImage")));
             this.MonsterInfoButton.Name = "MonsterInfoButton";
             this.MonsterInfoButton.LinkClicked += new DevExpress.XtraNavBar.NavBarLinkEventHandler(this.MonsterInfoButton_LinkClicked);
-            // 
-            // MonsterInfoStatButton
-            // 
-            this.MonsterInfoStatButton.Caption = "Monster Info Stat";
-            this.MonsterInfoStatButton.ImageOptions.SmallImage = ((System.Drawing.Image)(resources.GetObject("MonsterInfoStatButton.ImageOptions.SmallImage")));
-            this.MonsterInfoStatButton.Name = "MonsterInfoStatButton";
-            this.MonsterInfoStatButton.LinkClicked += new DevExpress.XtraNavBar.NavBarLinkEventHandler(this.MonsterInfoStatButton_LinkClicked);
             // 
             // MagicInfoButton
             // 
@@ -409,6 +384,13 @@
             this.ItemInfoStatButton.ImageOptions.SmallImage = ((System.Drawing.Image)(resources.GetObject("ItemInfoStatButton.ImageOptions.SmallImage")));
             this.ItemInfoStatButton.Name = "ItemInfoStatButton";
             this.ItemInfoStatButton.LinkClicked += new DevExpress.XtraNavBar.NavBarLinkEventHandler(this.ItemInfoStatButton_LinkClicked);
+            // 
+            // MonsterInfoStatButton
+            // 
+            this.MonsterInfoStatButton.Caption = "Monster Info Stat";
+            this.MonsterInfoStatButton.ImageOptions.SmallImage = ((System.Drawing.Image)(resources.GetObject("MonsterInfoStatButton.ImageOptions.SmallImage")));
+            this.MonsterInfoStatButton.Name = "MonsterInfoStatButton";
+            this.MonsterInfoStatButton.LinkClicked += new DevExpress.XtraNavBar.NavBarLinkEventHandler(this.MonsterInfoStatButton_LinkClicked);
             // 
             // SetInfoButton
             // 
@@ -472,6 +454,13 @@
             this.CompanionInfoButton.ImageOptions.SmallImage = ((System.Drawing.Image)(resources.GetObject("CompanionInfoButton.ImageOptions.SmallImage")));
             this.CompanionInfoButton.Name = "CompanionInfoButton";
             this.CompanionInfoButton.LinkClicked += new DevExpress.XtraNavBar.NavBarLinkEventHandler(this.CompanionInfoButton_LinkClicked);
+            // 
+            // CurrencyInfoButton
+            // 
+            this.CurrencyInfoButton.Caption = "Currency Info";
+            this.CurrencyInfoButton.ImageOptions.SmallImage = ((System.Drawing.Image)(resources.GetObject("CurrencyInfoButton.ImageOptions.SmallImage")));
+            this.CurrencyInfoButton.Name = "CurrencyInfoButton";
+            this.CurrencyInfoButton.LinkClicked += new DevExpress.XtraNavBar.NavBarLinkEventHandler(this.CurrencyInfoButton_LinkClicked);
             // 
             // ConfigButton
             // 
@@ -722,6 +711,10 @@
             this.InterfaceTimer.Interval = 1000;
             this.InterfaceTimer.Tick += new System.EventHandler(this.InterfaceTimer_Tick);
             // 
+            // navBarItem6
+            // 
+            this.navBarItem6.Name = "navBarItem6";
+            // 
             // SMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -796,12 +789,10 @@
         private DevExpress.XtraNavBar.NavBarItem CharacterInfoButton;
         private DevExpress.XtraNavBar.NavBarItem MovementInfoButton;
         private DevExpress.XtraBars.Ribbon.RibbonPage ribbonPage3;
-        private DevExpress.XtraBars.Ribbon.RibbonPageGroup ribbonPageGroup3;
         private DevExpress.XtraNavBar.NavBarItem ItemInfoStatButton;
         private DevExpress.XtraNavBar.NavBarItem SetInfoButton;
         private DevExpress.XtraNavBar.NavBarItem StoreInfoButton;
         private DevExpress.XtraNavBar.NavBarItem BaseStatButton;
-        private DevExpress.XtraBars.BarButtonItem barButtonItem1;
         private DevExpress.XtraNavBar.NavBarItem SafeZoneInfoButton;
         private DevExpress.XtraNavBar.NavBarItem RespawnInfoButton;
         private DevExpress.XtraNavBar.NavBarItem MapRegionButton;
@@ -821,6 +812,8 @@
         private DevExpress.XtraNavBar.NavBarItem navBarItem3;
         private DevExpress.XtraNavBar.NavBarItem navBarItem4;
         private DevExpress.XtraNavBar.NavBarItem navBarItem5;
+        private DevExpress.XtraNavBar.NavBarItem CurrencyInfoButton;
+        private DevExpress.XtraNavBar.NavBarItem navBarItem6;
     }
 }
 
