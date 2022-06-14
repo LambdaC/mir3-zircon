@@ -8,3 +8,6 @@
 		distance = 2; 跑
 		distance = 3; 骑马
 		每隔0.6秒行动一次，每次可以移动1/2/3个格子。
+
+爆装备的处理：
+	ServerLibrary\Envir\SEnvir.cs::CreateDropItem(...)
