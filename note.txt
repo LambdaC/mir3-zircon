@@ -11,3 +11,6 @@
 
 爆装备的处理：
 	ServerLibrary\Envir\SEnvir.cs::CreateDropItem(...)
+
+
+每个职业的基础状态配置配置在数据库
