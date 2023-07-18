@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -53,6 +54,22 @@ namespace Server
 
         private void SMain_Load(object sender, EventArgs e)
         {
+            try
+            {
+                if (!string.IsNullOrEmpty(Config.EncryptionKey))
+                    SEnvir.CryptoKey = Convert.FromBase64String(Config.EncryptionKey);
+            }
+            catch (Exception)
+            {
+                throw new ApplicationException($"Invalid format encryption key, expected a base64 with 32 bytes");
+            }
+
+            if (Config.EncryptionEnabled && SEnvir.CryptoKey == null)
+                throw new ApplicationException($"Encryption is enabled but not specified key [System] => DatabaseKey");
+
+            if (Config.EncryptionEnabled)
+                Encryption.SetKey(SEnvir.CryptoKey);
+
             ShowView(typeof(SystemLogView));
 
             Session = new Session(SessionMode.System)
@@ -113,11 +130,12 @@ namespace Server
         {
             base.OnClosing(e);
 
-            if (XtraMessageBox.Show(this, "Are you sure you want to close the server?", "Close Server", MessageBoxButtons.YesNo) != DialogResult.Yes)
-            {
-                e.Cancel = true;
-                return;
-            }
+            //TODO
+            //if (XtraMessageBox.Show("Are you sure you want to close the server?", "Close Server", MessageBoxButtons.YesNo) != DialogResult.Yes)
+            //{
+            //    e.Cancel = true;
+            //    return;
+            //}
 
             Session.BackUpDelay = 0;
             Session?.Save(true);
@@ -545,11 +563,6 @@ namespace Server
             ShowView(typeof(DiagnosticView));
         }
 
-        private void navBarItem2_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
-        {
-            ShowView(typeof(UserItemView));
-        }
-
         private void navBarItem3_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
         {
             ShowView(typeof(UserConquestStatsView));
@@ -560,10 +573,24 @@ namespace Server
             ShowView(typeof(UserMailView));
         }
 
-        private void navBarItem5_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
+        private void WeaponCraftInfoButton_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
         {
             ShowView(typeof(WeaponCraftStatInfoView));
         }
-    }
 
+        private void FishingInfoButton_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
+        {
+            ShowView(typeof(FishingInfoView));
+        }
+
+        private void DisciplineInfoButton_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
+        {
+            ShowView(typeof(DisciplineInfoView));
+        }
+
+        private void navBarItem5_LinkClicked(object sender, DevExpress.XtraNavBar.NavBarLinkEventArgs e)
+        {
+            ShowView(typeof(NPCListView));
+        }
+    }
 }

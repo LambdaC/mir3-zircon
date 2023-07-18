@@ -134,6 +134,20 @@ namespace Client.Models
         private int _CurrentMP;
         #endregion
 
+        #region CurrentFP
+        public override int CurrentFP
+        {
+            get { return _CurrentFP; }
+            set
+            {
+                _CurrentFP = value;
+
+                GameScene.Game.FocusChanged();
+            }
+        }
+        private int _CurrentFP;
+        #endregion
+
         #region AttackMode
         public AttackMode AttackMode
         {
@@ -191,8 +205,6 @@ namespace Client.Models
         private bool _InSafeZone;
 
         public int HermitPoints;
-        
-
 
         public List<ClientBuffInfo> Buffs = new List<ClientBuffInfo>();
         
@@ -204,6 +216,8 @@ namespace Client.Models
         public ObjectAction MagicAction;
         public bool CanPowerAttack;
 
+        public ClientUserDiscipline Discipline;
+
         public bool CanThrusting
         {
             get { return _canThrusting; }
@@ -213,7 +227,7 @@ namespace Client.Models
                 
                 _canThrusting = value;
 
-                GameScene.Game.ReceiveChat(CanThrusting ? "Use Thrusting." : "Do not use Thrusting.", MessageType.Hint);
+                GameScene.Game.ReceiveChat(CanThrusting ? CEnvir.Language.UseThrusting : CEnvir.Language.DoNotUseThrusting, MessageType.Hint);
             }
         }
         private bool _canThrusting;
@@ -227,7 +241,7 @@ namespace Client.Models
 
                 _CanHalfMoon = value;
 
-                GameScene.Game.ReceiveChat(CanHalfMoon ? "Use Half Moon Strike." : "Do not use Half Moon Strike.", MessageType.Hint);
+                GameScene.Game.ReceiveChat(CanHalfMoon ? CEnvir.Language.UseHalfMoon : CEnvir.Language.DoNotUseHalfMoon, MessageType.Hint);
             }
         }
         private bool _CanHalfMoon;
@@ -239,7 +253,7 @@ namespace Client.Models
                 if (_CanDestructiveBlow == value) return;
                 _CanDestructiveBlow = value;
 
-                GameScene.Game.ReceiveChat(CanDestructiveBlow ? "Use Destructive Blow." : "Do not use Destructive Blow.", MessageType.Hint);
+                GameScene.Game.ReceiveChat(CanDestructiveBlow ? CEnvir.Language.UseDestructiveBlow : CEnvir.Language.DoNotUseDestructiveBlow, MessageType.Hint);
             }
         }
         private bool _CanDestructiveBlow;
@@ -254,7 +268,7 @@ namespace Client.Models
                 if (_CanFlameSplash == value) return;
                 _CanFlameSplash = value;
 
-                GameScene.Game.ReceiveChat(CanFlameSplash ? "Use Flame Splash." : "Do not use Flame Splash.", MessageType.Hint);
+                GameScene.Game.ReceiveChat(CanFlameSplash ? CEnvir.Language.UseFlameSplash : CEnvir.Language.DoNotUseFlameSplash, MessageType.Hint);
             }
         }
         private bool _CanFlameSplash;
@@ -267,6 +281,7 @@ namespace Client.Models
             ObjectID = info.ObjectID;
 
             Name = info.Name;
+            Caption = info.Caption;
             NameColour = info.NameColour;
 
             Class = info.Class;
@@ -280,6 +295,7 @@ namespace Client.Models
 
             CurrentHP = info.CurrentHP;
             CurrentMP = info.CurrentMP;
+            CurrentFP = info.CurrentFP;
 
             Level = info.Level;
             Experience = info.Experience;
@@ -288,11 +304,15 @@ namespace Client.Models
             HairColour = info.HairColour;
 
             ArmourShape = info.Armour;
-            ArmourImage = info.ArmourImage;
             ArmourColour = info.ArmourColour;
             LibraryWeaponShape = info.Weapon;
-            WingsShape = info.WingsShape;
-            EmblemShape = info.EmblemShape;
+
+            CostumeShape = info.Costume;
+
+            ArmourEffect = info.ArmourEffect;
+            EmblemEffect = info.EmblemEffect;
+            WeaponEffect = info.WeaponEffect;
+            ShieldEffect = info.ShieldEffect;
 
             Poison = info.Poison;
 
@@ -307,6 +327,8 @@ namespace Client.Models
             HorseShape = info.HorseShape;
             HelmetShape = info.HelmetShape;
             ShieldShape = info.Shield;
+
+            HideHead = info.HideHead;
 
             GameScene.Game.DayTime = info.DayTime;
             GameScene.Game.GroupBox.AllowGroup = info.AllowGroup;
@@ -330,6 +352,12 @@ namespace Client.Models
                     Info = Globals.CurrencyInfoList.Binding.First(x => x.Index == currency.CurrencyIndex),
                     Amount = currency.Amount
                 });
+            }
+
+            if (info.Discipline != null)
+            {
+                Discipline = info.Discipline;
+                Discipline.DisciplineInfo = Globals.DisciplineInfoList.Binding.First(x => x.Index == info.Discipline.InfoIndex);
             }
 
             FiltersClass = info.FiltersClass;
@@ -359,9 +387,13 @@ namespace Client.Models
             }
             GameScene.Game.AutoPotionBox.UpdateLinks();
 
-            GameScene.Game.MapControl.AddObject(this);
+            GameScene.Game.CommunicationBox.OnlineState = info.OnlineState;
+            GameScene.Game.CommunicationBox.FriendList = info.Friends;
+            GameScene.Game.CommunicationBox.RefreshFriendList();
 
+            GameScene.Game.MapControl.AddObject(this);
         }
+
         public override void LocationChanged()
         {
             base.LocationChanged();
@@ -531,7 +563,6 @@ namespace Client.Models
                         }
                     }
 
-
                     if (CanBladeStorm)
                         attackMagic = MagicType.BladeStorm;
                     else if (CanDragonRise)
@@ -539,7 +570,6 @@ namespace Client.Models
                     else if (CanFlamingSword)
                         attackMagic = MagicType.FlamingSword;
                     
-
                     action.Extra[1] = attackMagic;
                     break;
                 case MirAction.Mount:
@@ -587,6 +617,16 @@ namespace Client.Models
                     CEnvir.Enqueue(new C.Magic { Direction = action.Direction, Action = action.Action, Type = MagicType, Target = AttackTargets?.Count > 0 ? AttackTargets[0].ObjectID : 0, Location = MagicLocations?.Count > 0 ? MagicLocations[0] : Point.Empty });
                     GameScene.Game.CanRun = false;
                     break;
+                case MirAction.Fishing:
+                    AttackTime = CEnvir.Now + TimeSpan.FromMilliseconds(Globals.AttackDelay);
+
+                    var state = (FishingState)action.Extra[0];
+                    var floatLocation = (Point)action.Extra[1];
+                    var caughtFish = GameScene.Game.FishingCatchBox.CaughtFish;
+
+                    CEnvir.Enqueue(new C.FishingCast { State = state, Direction = action.Direction, FloatLocation = floatLocation, CaughtFish = caughtFish });
+                    GameScene.Game.CanRun = false;
+                    break;
                 case MirAction.Mining:
                     attackDelay = Globals.AttackDelay - Stats[Stat.AttackSpeed] * Globals.ASpeedRate;
                     attackDelay = Math.Max(800, attackDelay);
@@ -602,8 +642,8 @@ namespace Client.Models
                     GameScene.Game.CanRun = false;
                     break;
             }
-            ServerTime = CEnvir.Now.AddSeconds(5);
 
+            ServerTime = CEnvir.Now.AddSeconds(5);
         }
 
         public override void Process()
@@ -669,6 +709,7 @@ namespace Client.Models
             GameScene.Game.CharacterBox.GuildRankLabel.Text = GuildRank;
 
             GameScene.Game.CharacterBox.CharacterNameLabel.Text = Name;
+
             GameScene.Game.TradeBox.UserLabel.Text = Name;
         }
 

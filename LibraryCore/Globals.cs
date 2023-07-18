@@ -23,6 +23,7 @@ namespace Library
         public static DBCollection<InstanceInfo> InstanceInfoList;
         public static DBCollection<NPCPage> NPCPageList;
         public static DBCollection<MonsterInfo> MonsterInfoList;
+        public static DBCollection<FishingInfo> FishingInfoList;
         public static DBCollection<StoreInfo> StoreInfoList;
         public static DBCollection<NPCInfo> NPCInfoList;
         public static DBCollection<MovementInfo> MovementInfoList;
@@ -31,6 +32,7 @@ namespace Library
         public static DBCollection<CompanionInfo> CompanionInfoList;
         public static DBCollection<CompanionLevelInfo> CompanionLevelInfoList;
         public static DBCollection<CurrencyInfo> CurrencyInfoList;
+        public static DBCollection<DisciplineInfo> DisciplineInfoList;
 
         public static Random Random = new Random();
 
@@ -38,6 +40,7 @@ namespace Library
         public static readonly Regex PasswordRegex = new Regex(@"^[\S]{" + MinPasswordLength + "," + MaxPasswordLength + "}$", RegexOptions.Compiled);
         public static readonly Regex CharacterReg = new Regex(@"^[A-Za-z0-9]{" + MinCharacterNameLength + "," + MaxCharacterNameLength + @"}$", RegexOptions.Compiled);
         public static readonly Regex GuildNameRegex = new Regex(@"^[A-Za-z0-9]{" + MinGuildNameLength + "," + MaxGuildNameLength + "}$", RegexOptions.Compiled);
+        public static readonly Regex CaptionReg = new Regex(@"^[A-Za-z0-9]{" + MinCaptionLength + "," + MaxCaptionLength + @"}$", RegexOptions.Compiled);
 
         public static Color NoneColour = Color.White,
                             FireColour = Color.OrangeRed,
@@ -60,6 +63,10 @@ namespace Library
             MinRealNameLength = 3,
             MaxRealNameLength = 20,
 
+
+            MinCaptionLength = 3,
+            MaxCaptionLength = 25,
+
             MaxEMailLength = 50,
 
             MinCharacterNameLength = 3,
@@ -76,10 +83,13 @@ namespace Library
             MaxAutoPotionCount = 8,
 
             MagicRange = 10,
+            MagicMaxLevel = 5,
 
             DuraLossRate = 15,
 
             GroupLimit = 15,
+
+            MaxGrowthLevel = 3,
 
             CloakRange = 3,
             MarketPlaceFee = 0,
@@ -94,7 +104,6 @@ namespace Library
 
         public static decimal MarketPlaceTax = 0.07M;  //2.5x Item cost
 
-
         public static long
             GuildCreationCost = 7500000,
             GuildMemberCost = 1000000,
@@ -105,29 +114,11 @@ namespace Library
             MasterRefineCost = 50000,
             MasterRefineEvaluateCost = 250000;
 
-
-        public static List<Size> ValidResolutions = new List<Size>
-        {
-            new Size(1024, 768),
-            new Size(1366, 768),
-            new Size(1280, 800),
-            new Size(1440, 900),
-            new Size(1600, 900),
-            new Size(1920, 1080),
-        };
-
         public static List<string> Languages = new List<string>
         {
             "English",
             "Chinese",
         };
-
-
-
-
-
-
-
 
         public static List<decimal> ExperienceList = new List<decimal>
         {
@@ -379,12 +370,12 @@ namespace Library
         };
 
         public const int InventorySize = 48,
-                         EquipmentSize = 17,
-                         CompanionInventorySize = 40,
+                         EquipmentSize = 22,
+                         CompanionInventorySize = 30,
                          CompanionEquipmentSize = 4,
-                         PartsStorageOffset = 2000,
                          EquipmentOffSet = 1000,
-                         StorageSize = 100;
+                         StorageSize = 100,
+                         PartsStorageOffset = 2000;
 
         public const int AttackDelay = 1500,    // 基础攻击间隔?
                          ASpeedRate = 47,       // 攻击速率?
@@ -396,7 +387,6 @@ namespace Library
                                AttackTime = TimeSpan.FromMilliseconds(600), // 攻击CD,用来计算下次行动时间
                                CastTime = TimeSpan.FromMilliseconds(600),
                                MagicDelay = TimeSpan.FromMilliseconds(2000);
-
 
         public static bool RealNameRequired = false,
                            BirthDateRequired = false;
@@ -415,6 +405,7 @@ namespace Library
     {
         public int CharacterIndex { get; set; }
         public string CharacterName { get; set; }
+        public string Caption { get; set; }
         public int Level { get; set; }
         public MirGender Gender { get; set; }
         public MirClass Class { get; set; }
@@ -427,6 +418,8 @@ namespace Library
         public int Index { get; set; }
         public uint ObjectID { get; set; }
         public string Name { get; set; }
+
+        public string Caption { get; set; }
         public Color NameColour { get; set; }
         public string GuildName { get; set; }
         public string GuildRank { get; set; }
@@ -437,32 +430,41 @@ namespace Library
         public MirDirection Direction { get; set; }
 
         public int MapIndex { get; set; }
-        public int? InstanceIndex { get; set; }
+        public int InstanceIndex { get; set; }
 
         public int Level { get; set; }
         public int HairType { get; set; }
         public Color HairColour { get; set; }
         public int Weapon { get; set; }
         public int Armour { get; set; }
+        public int Costume { get; set; }
         public int Shield { get; set; }
         public Color ArmourColour { get; set; }
-        public int ArmourImage { get; set; }
 
-        public int EmblemShape { get; set; }
-        public int WingsShape { get; set; }
-        
+        public ExteriorEffect ArmourEffect { get; set; }
+        public ExteriorEffect EmblemEffect { get; set; }
+        public ExteriorEffect WeaponEffect { get; set; }
+        public ExteriorEffect ShieldEffect { get; set; }
+
         public decimal Experience { get; set; }
 
         public int CurrentHP { get; set; }
         public int CurrentMP { get; set; }
+        public int CurrentFP { get; set; }
 
         public AttackMode AttackMode { get; set; }
         public PetMode PetMode { get; set; }
+
+        public OnlineState OnlineState { get; set; }
+
+        public ClientUserDiscipline Discipline { get; set; }
 
         public int HermitPoints { get; set; }
 
         public float DayTime { get; set; }
         public bool AllowGroup { get; set; }
+
+        public List<ClientFriendInfo> Friends { get; set; }
 
         public List<ClientUserItem> Items { get; set; }
         public List<ClientBeltLink> BeltLinks { get; set; }
@@ -484,6 +486,8 @@ namespace Library
 
         public int HelmetShape { get; set; }
         public int HorseShape { get; set; }
+
+        public bool HideHead { get; set; }
 
         public List<ClientUserQuest> Quests { get; set; }
 
@@ -881,6 +885,11 @@ namespace Library
         }
     }
 
+    public class ClientNPCValues
+    {
+        public int ID { get; set; }
+        public string Value { get; set; }
+    }
 
     public class CellLinkInfo
     {
@@ -932,6 +941,7 @@ namespace Library
         public bool Online { get; set; }
         public bool Observable { get; set; }
         public int Rebirth { get; set; }
+        public int RankChange { get; set; }
     }
 
     public class ClientMarketPlaceInfo
@@ -1109,7 +1119,6 @@ namespace Library
         {
             CompanionInfo = Globals.CompanionInfoList.Binding.First(x => x.Index == CompanionIndex);
 
-
             foreach (ClientUserItem item in Items)
             {
                 if (item.Slot < Globals.EquipmentOffSet)
@@ -1117,7 +1126,6 @@ namespace Library
                 else
                     EquipmentArray[item.Slot - Globals.EquipmentOffSet] = item;
             }
-
         }
 
     }
@@ -1159,6 +1167,13 @@ namespace Library
         public string Name { get; set; }
     }
 
+    public class ClientFriendInfo
+    {
+        public int Index { get; set; }
+        public string Name { get; set; }
+        public OnlineState State { get; set; }
+    }
+
     public class ClientFortuneInfo
     {
         public int ItemIndex { get; set; }
@@ -1191,6 +1206,21 @@ namespace Library
         public int CurrencyIndex { get; set; }
         public CurrencyInfo Info;
         public long Amount { get; set; }
+
+        [IgnorePropertyPacket]
+        public bool CanPickup
+        {
+            get { return Info != null && Info.DropItem != null; }
+        }
+    }
+
+    public class ClientUserDiscipline
+    {
+        public int InfoIndex { get; set; }
+        public DisciplineInfo DisciplineInfo;
+        public int Level { get; set; }
+        public long Experience { get; set; }
+        public List<ClientUserMagic> Magics { get; set; }
     }
 }
 

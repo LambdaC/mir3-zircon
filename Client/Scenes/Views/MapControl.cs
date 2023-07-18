@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using Client.Controls;
 using Client.Envir;
 using Client.Models;
+using Client.Models.Particles;
 using Library;
 using Library.SystemModels;
 using SlimDX;
@@ -72,6 +73,7 @@ namespace Client.Scenes.Views
             if (nValue != null)
                 DXSoundManager.Play(nValue.Music);
 
+            UpdateWeather();
             LLayer.UpdateLights();
             MapInfoChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -148,10 +150,16 @@ namespace Client.Scenes.Views
 
         public MouseButtons MapButtons;
         public Point MapLocation;
+
         public bool Mining;
         public Point MiningPoint;
         public MirDirection MiningDirection;
-        
+
+        public FishingState FishingState;
+        public Point FloatLocation;
+        public MirDirection FishingDirection;
+        public bool AutoCast;
+
         public Floor FLayer;
         public Light LLayer;
 
@@ -394,7 +402,7 @@ namespace Client.Scenes.Views
             float oldOpacity = MapObject.User.Opacity;
             MapObject.User.Opacity = 0.65F;
 
-            MapObject.User.DrawBody(false);
+            MapObject.User.DrawPlayer(false);
 
             MapObject.User.Opacity = oldOpacity;
 
@@ -417,7 +425,6 @@ namespace Client.Scenes.Views
             }
 
         }
-
 
         private void LoadMap()
         {
@@ -482,6 +489,40 @@ namespace Client.Scenes.Views
                     Cells[ob.CurrentLocation.X, ob.CurrentLocation.Y].AddObject(ob);
         }
 
+        private void UpdateWeather()
+        {
+            GameScene.Game.MapControl.ParticleEffects.Clear();
+
+            if (Config.DrawWeather)
+            {
+                var point = new Point((Size.Width) / 2, (Size.Height) / 2);
+
+                if (GameScene.Game.MapControl.MapInfo.Weather.HasFlag(Weather.Rain))
+                {
+                    var emitter = (ParticleEmitter)Activator.CreateInstance(typeof(Rain), point);
+                    GameScene.Game.MapControl.ParticleEffects.Add(emitter);
+                }
+
+                if (GameScene.Game.MapControl.MapInfo.Weather.HasFlag(Weather.Snow))
+                {
+                    var emitter = (ParticleEmitter)Activator.CreateInstance(typeof(Snow), point);
+                    GameScene.Game.MapControl.ParticleEffects.Add(emitter);
+                }
+
+                if (GameScene.Game.MapControl.MapInfo.Weather.HasFlag(Weather.Fog))
+                {
+                    var emitter = (ParticleEmitter)Activator.CreateInstance(typeof(Fog), point);
+                    GameScene.Game.MapControl.ParticleEffects.Add(emitter);
+                }
+
+                if (GameScene.Game.MapControl.MapInfo.Weather.HasFlag(Weather.Lightning))
+                {
+                    var emitter = (ParticleEmitter)Activator.CreateInstance(typeof(Lightning), point);
+                    GameScene.Game.MapControl.ParticleEffects.Add(emitter);
+                }
+            }
+        }
+
         public override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
@@ -490,7 +531,6 @@ namespace Client.Scenes.Views
         }
         public override void OnMouseDown(MouseEventArgs e)
         {
-
             base.OnMouseDown(e);
 
             if (GameScene.Game.Observer) return;
@@ -504,7 +544,6 @@ namespace Client.Scenes.Views
             }
             
             if (e.Button != MouseButtons.Left) return;
-
 
             DXItemCell cell = DXItemCell.SelectedCell;
             if (cell != null)
@@ -532,7 +571,6 @@ namespace Client.Scenes.Views
                     return;
                 }
 
-
                 if ((cell.Item.Flags & UserItemFlags.Locked) == UserItemFlags.Locked || (cell.GridType != GridType.Inventory && cell.GridType != GridType.CompanionInventory))
                 {
                     DXItemCell.SelectedCell = null;
@@ -557,23 +595,26 @@ namespace Client.Scenes.Views
                 return;
             }
 
-            if (GameScene.Game.GoldPickedUp)
+            if (GameScene.Game.CurrencyPickedUp != null)
             {
                 MapButtons &= ~e.Button;
-                DXItemAmountWindow window = new DXItemAmountWindow("Drop Item", new ClientUserItem(Globals.GoldInfo, User.Gold.Amount));
+
+                int index = GameScene.Game.CurrencyPickedUp.Info.Index;
+
+                DXItemAmountWindow window = new DXItemAmountWindow("Drop Item", new ClientUserItem(GameScene.Game.CurrencyPickedUp.Info.DropItem, GameScene.Game.CurrencyPickedUp.Amount));
 
                 window.ConfirmButton.MouseClick += (o, a) =>
                 {
                     if (window.Amount <= 0) return;
 
-                    CEnvir.Enqueue(new C.GoldDrop
+                    CEnvir.Enqueue(new C.CurrencyDrop
                     {
+                        CurrencyIndex = index,
                         Amount = window.Amount
                     });
-
                 };
 
-                GameScene.Game.GoldPickedUp = false;
+                GameScene.Game.CurrencyPickedUp = null;
                 return;
             }
             
@@ -709,7 +750,6 @@ namespace Client.Scenes.Views
 
             if (User.Dead || (User.Poison & PoisonType.Paralysis) == PoisonType.Paralysis || User.Buffs.Any(x => x.Type == BuffType.DragonRepulse || x.Type == BuffType.FrostBite)) return; //Para or Frozen??
 
-
             if (User.MagicAction != null)
             {
                 if (CEnvir.Now < MapObject.User.NextActionTime || MapObject.User.ActionQueue.Count != 0) return;
@@ -723,7 +763,7 @@ namespace Client.Scenes.Views
             
             if (MapObject.TargetObject != null && !MapObject.TargetObject.Dead && ((MapObject.TargetObject.Race == ObjectType.Monster && string.IsNullOrEmpty(MapObject.TargetObject.PetOwner)) || CEnvir.Shift))
             {
-                if (Functions.Distance(MapObject.TargetObject.CurrentLocation, MapObject.User.CurrentLocation) ==  1 && CEnvir.Now > User.AttackTime && User.Horse == HorseType.None && !User.Fishing)
+                if (Functions.Distance(MapObject.TargetObject.CurrentLocation, MapObject.User.CurrentLocation) ==  1 && CEnvir.Now > User.AttackTime && User.Horse == HorseType.None)
                 {
                     MapObject.User.AttemptAction(new ObjectAction(
                         MirAction.Attack,
@@ -756,31 +796,51 @@ namespace Client.Scenes.Views
 
                         if (CEnvir.Shift && MapObject.TargetObject == null)
                         {
+                            if (FishingState != FishingState.None) return;
+
                             if (CEnvir.Now > User.AttackTime && User.Horse == HorseType.None)
-                                MapObject.User.AttemptAction(new ObjectAction(
-                                    MirAction.Attack, //RANDOMIZE
-                                    direction,
-                                    MapObject.User.CurrentLocation,
-                                    0, //Ranged Attack Target ID
-                                    MagicType.None,
-                                    Element.None));
+                                MapObject.User.AttemptAction(new ObjectAction(MirAction.Attack, direction, MapObject.User.CurrentLocation, 0, MagicType.None, Element.None));
+
                             return;
                         }
 
+                        ClientUserItem weap = GameScene.Game.Equipment[(int)EquipmentSlot.Weapon];
+                        ClientUserItem armour = GameScene.Game.Equipment[(int)EquipmentSlot.Armour];
+
                         if (CEnvir.Alt)
                         {
-                            if (User.Horse == HorseType.None)
-                                MapObject.User.AttemptAction(new ObjectAction(
-                                MirAction.Harvest,
-                                direction,
-                                MapObject.User.CurrentLocation));
-                            return;
+                            if (User.Horse != HorseType.None) return;
+                            if (FishingState != FishingState.None) return;
+
+                            if (weap?.Info.ItemEffect == ItemEffect.FishingRod && armour?.Info.ItemEffect == ItemEffect.FishingRobe)
+                            {
+                                FloatLocation = MapLocation;
+                                FishingDirection = Functions.DirectionFromPoint(MapObject.User.CurrentLocation, FloatLocation);
+
+                                var distance = Functions.Distance(MapObject.User.CurrentLocation, FloatLocation);
+
+                                if (Functions.FishingZone(Globals.FishingInfoList, MapInfo, Width, Height, FloatLocation) != null && Functions.ValidFishingDistance(distance, User.Stats[Stat.ThrowDistance]))
+                                {
+                                    FishingState = FishingState.Cast;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                MapObject.User.AttemptAction(new ObjectAction(MirAction.Harvest, direction, MapObject.User.CurrentLocation));
+                                return;
+                            }
+                        }
+
+                        if (FishingState != FishingState.None)
+                        {
+                            FishingState = FishingState.Cancel;
+                            break;
                         }
 
                         if (MapLocation == MapObject.User.CurrentLocation)
                         {
                             if (CEnvir.Now <= GameScene.Game.PickUpTime) return;
-
 
                             CEnvir.Enqueue(new C.PickUp());
                             GameScene.Game.PickUpTime = CEnvir.Now.AddMilliseconds(250);
@@ -790,10 +850,7 @@ namespace Client.Scenes.Views
 
                         if (MapObject.MouseObject != null && MapObject.MouseObject.Race != ObjectType.Item && !MapObject.MouseObject.Dead) break;
 
-
-                        ClientUserItem weap = GameScene.Game.Equipment[(int) EquipmentSlot.Weapon];
-                        
-                        if (MapInfo.CanMine && weap != null && weap.Info.Effect == ItemEffect.PickAxe)
+                        if (MapInfo.CanMine && weap != null && weap.Info.ItemEffect == ItemEffect.PickAxe)
                         {
                             MiningPoint = Functions.Move(User.CurrentLocation, direction);
 
@@ -821,8 +878,14 @@ namespace Client.Scenes.Views
                             MapObject.User.AttemptAction(new ObjectAction(MirAction.Moving, direction, Functions.Move(MapObject.User.CurrentLocation, direction), 1, MagicType.None));
                         return;
                     case MouseButtons.Right:
-
                         Mining = false;
+
+                        if (FishingState != FishingState.None)
+                        {
+                            FishingState = FishingState.Cancel;
+                            break;
+                        }
+
                         if (MapObject.MouseObject is PlayerObject && MapObject.MouseObject != MapObject.User && CEnvir.Ctrl) break;
 
                         if (!GameScene.Game.MoveFrame || (User.Poison & PoisonType.WraithGrip) == PoisonType.WraithGrip) break;
@@ -844,20 +907,43 @@ namespace Client.Scenes.Views
             {
                 ClientUserItem weap = GameScene.Game.Equipment[(int)EquipmentSlot.Weapon];
 
-                if (MapInfo.CanMine && weap != null && (weap.CurrentDurability > 0 || weap.Info.Durability == 0) && weap.Info.Effect == ItemEffect.PickAxe &&
+                if (MapInfo.CanMine && weap != null && (weap.CurrentDurability > 0 || weap.Info.Durability == 0) && weap.Info.ItemEffect == ItemEffect.PickAxe &&
                     MiningPoint.X >= 0 && MiningPoint.Y >= 0 && MiningPoint.X < Width && MiningPoint.Y < Height && Cells[MiningPoint.X, MiningPoint.Y].Flag &&
-                    Functions.Distance(MiningPoint, MapObject.User.CurrentLocation) == 1  && User.Horse == HorseType.None)
+                    Functions.Distance(MiningPoint, MapObject.User.CurrentLocation) == 1 && User.Horse == HorseType.None)
                 {
                     if (CEnvir.Now > User.AttackTime)
-                    MapObject.User.AttemptAction(new ObjectAction(
-                        MirAction.Mining,
-                        Functions.DirectionFromPoint(MapObject.User.CurrentLocation, MiningPoint),
-                        MapObject.User.CurrentLocation,
-                        false));
+                    {
+                        MapObject.User.AttemptAction(new ObjectAction(
+                            MirAction.Mining,
+                            Functions.DirectionFromPoint(MapObject.User.CurrentLocation, MiningPoint),
+                            MapObject.User.CurrentLocation,
+                            false));
+                    }
                 }
                 else
                 {
                     Mining = false;
+                }
+            }
+
+            if (FishingState != FishingState.None || AutoCast)
+            {
+                if (CEnvir.Now > User.AttackTime)
+                {
+                    if (FishingState == FishingState.Reel)
+                    {
+                        FishingState = FishingState.None;
+                    }
+                    else
+                    {
+                        if (AutoCast)
+                        {
+                            FishingState = FishingState.Cast;
+                            AutoCast = false;
+                        }
+
+                        MapObject.User.AttemptAction(new ObjectAction(MirAction.Fishing, FishingDirection, MapObject.User.CurrentLocation, FishingState, FloatLocation, MapObject.User.FishFound));
+                    }
                 }
             }
 
@@ -1047,10 +1133,8 @@ namespace Client.Scenes.Views
         {
             Objects.Add(ob);
 
-
             if (ob.CurrentLocation.X < Width && ob.CurrentLocation.Y < Height)
                 Cells[ob.CurrentLocation.X, ob.CurrentLocation.Y].AddObject(ob);
-
         }
 
         public void RemoveObject(MapObject ob)
@@ -1086,7 +1170,6 @@ namespace Client.Scenes.Views
         {
             if (User == null) return;
 
-
             GameScene.Game.MapControl.MapLocation = new Point((GameScene.Game.MapControl.MouseLocation.X - GameScene.Game.Location.X) / CellWidth - OffSetX + User.CurrentLocation.X,
                                                               (GameScene.Game.MapControl.MouseLocation.Y - GameScene.Game.Location.Y) / CellHeight - OffSetY + User.CurrentLocation.Y);
         }
@@ -1104,6 +1187,7 @@ namespace Client.Scenes.Views
 
             return false;
         }
+
         public bool CanEnergyBlast(MirDirection direction)
         {
             return HasTarget(Functions.Move(MapObject.User.CurrentLocation, direction, 2));
@@ -1126,7 +1210,6 @@ namespace Client.Scenes.Views
             return false;
         }
 
-
         public bool ValidCell(Point location)
         {
             if (location.X < 0 || location.Y < 0 || location.X >= Width || location.Y >= Height) return false;
@@ -1146,6 +1229,8 @@ namespace Client.Scenes.Views
                 _MapInfo = null;
                 MapInfoChanged = null;
 
+                _InstanceInfo = null;
+
                 _Animation = 0;
                 AnimationChanged = null;
 
@@ -1155,6 +1240,10 @@ namespace Client.Scenes.Views
                 MiningPoint = Point.Empty;
                 MiningDirection = 0;
 
+                FishingState = FishingState.None;
+                FloatLocation = Point.Empty;
+                FishingDirection = 0;
+                AutoCast = false;
 
                 if (FLayer != null)
                 {
@@ -1189,8 +1278,18 @@ namespace Client.Scenes.Views
                 ViewRangeY = 0;
                 OffSetX = 0;
                 OffSetY = 0;
-            }
 
+                if (ParticleEffects != null)
+                {
+                    foreach (var effect in ParticleEffects)
+                    {
+                        effect.Dispose();
+                    }
+
+                    ParticleEffects.Clear();
+                    ParticleEffects = null;
+                }
+            }
         }
 
         #endregion
@@ -1460,12 +1559,16 @@ namespace Client.Scenes.Views
                 switch (GameScene.Game.MapControl.MapInfo.Light)
                 {
                     case LightSetting.Default:
-                        byte shading = (byte) (255*GameScene.Game.DayTime);
+                        byte shading = (byte) (255 * GameScene.Game.DayTime);
                         BackColour = Color.FromArgb(shading, shading, shading);
                         Visible = true;
                         break;
                     case LightSetting.Night:
                         BackColour = Color.FromArgb(15, 15, 15);
+                        Visible = true;
+                        break;
+                    case LightSetting.Twilight:
+                        BackColour = Color.FromArgb(100, 100, 100);
                         Visible = true;
                         break;
                     case LightSetting.Light:

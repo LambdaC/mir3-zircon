@@ -55,7 +55,7 @@ namespace Client.Scenes.Views
 
         public override WindowType Type => WindowType.MagicBarBox;
         public override bool CustomSize => false;
-        public override bool AutomaticVisiblity => true;
+        public override bool AutomaticVisibility => true;
         
 
         public MagicBarDialog()
@@ -468,7 +468,6 @@ namespace Client.Scenes.Views
                     }
                 });
 
-
                 pair.Value.Tag = magic?.Info;
 
                 if (magic != null)
@@ -530,8 +529,6 @@ namespace Client.Scenes.Views
                 SetLabel.Location = new Point(ClientArea.X + 460, ClientArea.Y + UpButton.Size.Height - 1);
                 DownButton.Location = new Point(ClientArea.X + 461, ClientArea.X + 37 - UpButton.Size.Height);
             }
-
-
         }
 
         public override void Process()

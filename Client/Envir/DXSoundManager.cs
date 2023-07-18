@@ -47,6 +47,10 @@ namespace Client.Envir
             [SoundIndex.Foot3] = new DXSound(SoundPath + @"3.wav", SoundType.Player),
             [SoundIndex.Foot4] = new DXSound(SoundPath + @"4.wav", SoundType.Player),
 
+            [SoundIndex.FishingCast] = new DXSound(SoundPath + @"84.wav", SoundType.Player),
+            [SoundIndex.FishingBob] = new DXSound(SoundPath + @"85.wav", SoundType.Player),
+            [SoundIndex.FishingReel] = new DXSound(SoundPath + @"86.wav", SoundType.Player),
+
             [SoundIndex.HorseWalk1] = new DXSound(SoundPath + @"33.wav", SoundType.Player),
             [SoundIndex.HorseWalk2] = new DXSound(SoundPath + @"34.wav", SoundType.Player),
             [SoundIndex.HorseRun] = new DXSound(SoundPath + @"35.wav", SoundType.Player),
@@ -101,6 +105,9 @@ namespace Client.Envir
             [SoundIndex.GoldPickUp] = new DXSound(SoundPath + @"120.wav", SoundType.System),
             [SoundIndex.GoldGained] = new DXSound(SoundPath + @"122.wav", SoundType.System),
 
+            [SoundIndex.RollDice] = new DXSound(SoundPath + @"dice_roll.wav", SoundType.System),
+            [SoundIndex.RollYut] = new DXSound(SoundPath + @"yut_sticks.wav", SoundType.System),
+
             #endregion
 
             #region Magic
@@ -122,9 +129,6 @@ namespace Client.Envir
             [SoundIndex.AssaultStart] = new DXSound(SoundPath + @"M109-1.wav", SoundType.Magic),
 
             [SoundIndex.SwiftBladeEnd] = new DXSound(SoundPath + @"M131-2.wav", SoundType.Magic),
-
-
-
 
             [SoundIndex.FireBallStart] = new DXSound(SoundPath + @"M1-1.wav", SoundType.Magic),
             [SoundIndex.FireBallTravel] = new DXSound(SoundPath + @"M1-2.wav", SoundType.Magic),
@@ -282,6 +286,9 @@ namespace Client.Envir
 
             [SoundIndex.RagingWindStart] = new DXSound(SoundPath + @"M26-1.wav", SoundType.Magic),
             [SoundIndex.EvasionStart] = new DXSound(SoundPath + @"243-5.wav", SoundType.Magic),
+
+            //[SoundIndex.LegBlowStart] = new DXSound(SoundPath + @"m136-2.wav", SoundType.Magic),
+
             #endregion
 
             #region Monsters

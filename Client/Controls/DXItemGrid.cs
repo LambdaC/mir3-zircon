@@ -66,7 +66,6 @@ namespace Client.Controls
 
         #endregion
 
-
         #region GridPadding
 
         public int GridPadding
@@ -258,7 +257,6 @@ namespace Client.Controls
 
         #endregion
 
-
         public DXItemCell[] Grid;
 
         public override void OnOpacityChanged(float oValue, float nValue)
@@ -393,6 +391,7 @@ namespace Client.Controls
                     cell.Link = null;
                 }
         }
+
         #endregion
 
         #region IDisposable

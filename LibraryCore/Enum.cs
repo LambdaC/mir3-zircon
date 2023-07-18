@@ -108,7 +108,13 @@ namespace Library
         HorseArmour = 13,
         Emblem = 14,
         Shield = 15,
-        Wings = 16,
+        Costume = 16,
+
+        Hook = 17,
+        Float = 18,
+        Bait = 19,
+        Finder = 20,
+        Reel = 21
     }
 
     public enum CompanionSlot
@@ -134,13 +140,29 @@ namespace Library
         Weekend = Saturday | Sunday
     }
 
+    [Flags]
+    public enum Weather
+    {
+        None = 0,
+        Rain = 1,
+        Snow = 2,
+        Fog = 4,
+        Lightning = 8,
+
+        [Description("Rain, Lightning")]
+        RainLightning = 9,
+        [Description("Fog, Lightning")]
+        FogLightning = 12,
+        [Description("Rain, Fog, Lightning")]
+        RainFogLightning = 13
+    }
+
     public enum GridType
     {
         None,
         Inventory,
         Equipment,
         Belt,
-        Sell,
         Repair,
         Storage,
         AutoPotion,
@@ -181,7 +203,19 @@ namespace Library
         RefineCorundumOre,
         AccessoryRefineCombTarget,
         AccessoryRefineCombItems,
-        PartsStorage,
+        PartsStorage
+    }
+
+    public enum GridSelect
+    {
+        Single,
+        Multi
+    }
+
+    public enum InventoryMode
+    {
+        Normal,
+        Sell
     }
 
     public enum BuffType
@@ -200,8 +234,6 @@ namespace Library
 
         Castle = 9,
 
-
-
         ItemBuff = 10,
         ItemBuffPermanent = 11,
 
@@ -210,20 +242,23 @@ namespace Library
         Veteran = 14,
 
         MapEffect = 15,
-        Guild = 16,
+        InstanceEffect = 16,
+        Guild = 17,
 
-        DeathDrops = 17,
+        DeathDrops = 18,
 
+        //War
         Defiance = 100,
         Might = 101,
         Endurance = 102,
         ReflectDamage = 103,
 
+        //Wiz
         Renounce = 200,
         MagicShield = 201,
         JudgementOfHeaven = 202,
 
-
+        //Tao
         Heal = 300,
         Invisibility = 301,
         MagicResistance = 302,
@@ -235,8 +270,8 @@ namespace Library
         Transparency = 308,
         LifeSteal = 309,
 
+        //Ass
         PoisonousCloud = 400,
-
         FullBloom = 401, 
         WhiteLotus = 402,
         RedLotus = 403,
@@ -284,6 +319,16 @@ namespace Library
         Light,
         Night,
         Twilight,
+    }
+
+    public enum TimeOfDay : byte
+    {
+        None,
+
+        Dawn,
+        Day,
+        Dusk,
+        Night
     }
 
     public enum FightSetting : byte
@@ -349,7 +394,12 @@ namespace Library
         ItemPart,
         Emblem,
         Shield,
-        Wings
+        Costume,
+        Hook,
+        Float,
+        Bait,
+        Finder,
+        Reel
     }
 
     public enum MirAction : byte
@@ -368,6 +418,7 @@ namespace Library
         Hide,
         Mount,
         Mining,
+        Fishing
     }
 
     public enum MirAnimation : byte
@@ -459,12 +510,16 @@ namespace Library
         AccessoryReset,
         WeaponCraft,
         AccessoryRefine,
+
+        RollDie,
+        RollYut
     }
 
     public enum MagicSchool
     {
         None,
-        Passive,
+
+        Passive = 1,
         WeaponSkills,
         Neutral,
         Fire,
@@ -475,7 +530,10 @@ namespace Library
         Dark,
         Phantom,
         Combat,
-        Assassination
+        Assassination,
+        Horse,
+
+        Discipline = 20
     }
     
     public enum Element : byte
@@ -483,10 +541,10 @@ namespace Library
         None,
         Fire,
         Ice,
-        Lightning ,
+        Lightning,
         Wind,
         Holy,
-        Dark ,
+        Dark,
         Phantom,
     }
 
@@ -562,6 +620,7 @@ namespace Library
         AdvancedRenounce = 238,
         FrostBite = 239,
         Asteroid = 240,
+        FireBounce = 241,
 
         // 道士技能
         Heal = 300,
@@ -675,7 +734,6 @@ namespace Library
 
         PinkFireBall = 530,
         GreenSludgeBall = 540,
-
     }
 
     public enum MonsterImage
@@ -981,7 +1039,6 @@ namespace Library
         TeleportOut,
         TeleportIn,
 
-        //??
         FullBloom,
         WhiteLotus,
         RedLotus,
@@ -1026,7 +1083,6 @@ namespace Library
 
         SafeZone,
 
-
         FireWall,
         MonsterFireWall,
         Tempest,
@@ -1050,7 +1106,6 @@ namespace Library
         LowestPrice,
     }
 
-
     public enum MarketPlaceStoreSort
     {
         Alphabetical,
@@ -1060,7 +1115,6 @@ namespace Library
         LowestPrice,
         Favourite
     }
-
 
     public enum DungeonFinderSort
     {
@@ -1098,11 +1152,71 @@ namespace Library
 
     public enum RefineQuality : byte
     {
-        Rush,
-        Quick,
-        Standard,
-        Careful,
-        Precise,
+        Rush = 0,
+        Quick = 1,
+        Standard = 2,
+        Careful = 3,
+        Precise = 4,
+    }
+
+    public enum ExteriorEffect : byte
+    {
+        None,
+
+        //EquipEffect_Part [1~99] 
+        A_WhiteAura = 1,
+        A_FlameAura = 2,
+        A_BlueAura = 3,
+
+        A_FlameAura2 = 9,
+        A_GreenWings = 10,
+        A_FlameWings = 11,
+        A_BlueWings = 12,
+        A_RedSinWings = 13,
+
+        A_DiamondFireWings = 14,
+        A_PurpleTentacles2 = 15,
+        A_PhoenixWings = 16,
+        A_IceKingWings = 17,
+        A_BlueButterflyWings = 18,
+
+
+        S_WarThurible = 50,
+        S_PenanceThurible = 51,
+        S_CensorshipThurible = 52,
+        S_PetrichorThurible = 53,
+        
+        //EquipEffect_Full [100~119]
+        A_FireDragonWings = 100,
+        A_SmallYellowWings = 101,
+        A_GreenFeatherWings = 102,
+        A_RedFeatherWings = 103,
+        A_BlueFeatherWings = 104,
+        A_WhiteFeatherWings = 105,
+        A_PurpleTentacles = 106,
+
+        W_ChaoticHeavenBlade = 110,
+        W_JanitorsScimitar = 111,
+        W_JanitorsDualBlade = 112,
+
+        //EquipEffect_FullEx1 [120~139] 
+        A_LionWings = 120,
+        A_AngelicWings = 121,
+
+        //EquipEffect_FullEx2 [140~159] 
+        A_BlueDragonWings = 140,
+
+        //EquipEffect_FullEx3 [160~179]
+        A_RedWings2 = 160,
+
+        //EquipEffect_Item [180~199]
+        //Reserved
+
+        //MonMagicEx26 [200~250] 
+        E_RedEyeRing = 200,
+        E_BlueEyeRing = 201,
+        E_GreenSpiralRing = 202,
+        E_Fireworks = 203
     }
 
     public enum ItemEffect : byte
@@ -1146,6 +1260,7 @@ namespace Library
         ArmourDye = 52,
         NameChange = 53,
         FortuneChecker = 54,
+        Caption = 55,
 
         WeaponTemplate = 60,
         WarriorWeapon = 61,
@@ -1163,6 +1278,9 @@ namespace Library
         FootballArmour = 80,
         FootBallWhistle = 81,
 
+        FishingRod = 82,
+        FishingRobe = 83,
+
         StatExtractor = 90,
         SpiritBlade = 91,
         RefineExtractor = 92,
@@ -1170,10 +1288,10 @@ namespace Library
 
     public enum CurrencyType
     {
-        Gold,
-        GameGold,
-        HuntGold,
-        Other
+        Gold = 0,
+        GameGold = 1,
+        HuntGold = 2,
+        Other = 3
     }
 
     [Flags]
@@ -1194,14 +1312,21 @@ namespace Library
     
     public enum HorseType : byte
     {
-        None,
-        Brown,
-        White,
-        Red,
-        Black,
-        WhiteUnicorn,
-        RedUnicorn
-
+        None = 0,
+        Brown = 1,
+        White = 2,
+        Red = 3,
+        Black = 4,
+        WhiteUnicorn = 5,
+        RedUnicorn = 6
+    }
+    
+    public enum OnlineState : byte
+    {
+        Online,
+        Busy,
+        Away,
+        Offline
     }
 
     [Flags]
@@ -1223,50 +1348,50 @@ namespace Library
 
     public enum NPCRequirementType
     {
-        MinLevel,
-        MaxLevel,
-        Accepted,
-        NotAccepted,
-        HaveCompleted,
-        HaveNotCompleted,
-        Class,
-        DaysOfWeek,
+        MinLevel = 0,
+        MaxLevel = 1,
+        Accepted = 2,
+        NotAccepted = 3,
+        HaveCompleted = 4,
+        HaveNotCompleted = 5,
+        Class = 6,
+        DaysOfWeek = 7,
     }
 
     public enum QuestType
     {
         General = 0,
         Daily = 1,
-        //Weekly = 2,
+        Weekly = 2,
         Repeatable = 3,
         Story = 4,
-        //Account = 5
+        Account = 5
     }
 
     public enum QuestIcon
     {
         None = 0,
 
-        New,
-        Incomplete,
-        Complete,
+        New = 1,
+        Incomplete = 2,
+        Complete = 3,
     }
 
     public enum QuestRequirementType
     {
-        MinLevel,
-        MaxLevel,
-        NotAccepted,
-        HaveCompleted,
-        HaveNotCompleted,
-        Class,
+        MinLevel = 0,
+        MaxLevel = 1,
+        NotAccepted = 2,
+        HaveCompleted = 3,
+        HaveNotCompleted = 4,
+        Class = 5,
     }
 
     public enum QuestTaskType
     {
-        KillMonster,
-        GainItem,
-        Region
+        KillMonster = 0,
+        GainItem = 1,
+        Region = 2
     }
 
     public enum MovementEffect
@@ -1394,7 +1519,15 @@ namespace Library
         QuartzMiniTurtle = 204,
         QuartzTurtleSub = 205,
 
-        Sacrafice = 210,
+        Sacrifice = 210,
+    }
+
+    public enum FishingState : byte
+    {
+        None,
+        Cast,
+        Reel,
+        Cancel
     }
 
     #region Packet Enums
@@ -1536,6 +1669,7 @@ namespace Library
         NotGroupLeader,
         UserCooldown,
         GuildCooldown,
+        MissingItem,
         NoMap,
         Success
     }
@@ -1619,6 +1753,9 @@ namespace Library
         GoldPickUp,
         GoldGained,
 
+        RollDice,
+        RollYut,
+
         DaggerSwing,
         WoodSwing,
         IronSwordSwing,
@@ -1637,6 +1774,11 @@ namespace Library
         Foot2,
         Foot3,
         Foot4,
+
+        FishingCast,
+        FishingBob,
+        FishingReel,
+
         HorseWalk1,
         HorseWalk2,
         HorseRun,

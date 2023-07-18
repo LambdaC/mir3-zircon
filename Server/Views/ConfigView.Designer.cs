@@ -1,4 +1,6 @@
-﻿namespace Server.Views
+﻿using Microsoft.Win32;
+
+namespace Server.Views
 {
     partial class ConfigView
     {
@@ -38,6 +40,7 @@
             this.xtraTabPage1 = new DevExpress.XtraTab.XtraTabPage();
             this.PacketBanTimeEdit = new DevExpress.XtraEditors.TimeSpanEdit();
             this.SyncronizeButton = new DevExpress.XtraEditors.SimpleButton();
+            this.DatabaseEncryptionButton = new DevExpress.XtraEditors.SimpleButton();
             this.labelControl86 = new DevExpress.XtraEditors.LabelControl();
             this.labelControl87 = new DevExpress.XtraEditors.LabelControl();
             this.MaxPacketEdit = new DevExpress.XtraEditors.TextEdit();
@@ -224,8 +227,8 @@
             this.labelControl56 = new DevExpress.XtraEditors.LabelControl();
             this.ExperienceRateEdit = new DevExpress.XtraEditors.TextEdit();
             this.labelControl55 = new DevExpress.XtraEditors.LabelControl();
-            this.OpenDialog = new System.Windows.Forms.OpenFileDialog();
-            this.FolderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            this.OpenDialog = new DevExpress.XtraEditors.XtraOpenFileDialog();
+            this.FolderDialog = new DevExpress.XtraEditors.XtraFolderBrowserDialog();
             ((System.ComponentModel.ISupportInitialize)(this.ribbon)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.xtraTabControl1)).BeginInit();
             this.xtraTabControl1.SuspendLayout();
@@ -400,6 +403,7 @@
             // 
             this.xtraTabPage1.Controls.Add(this.PacketBanTimeEdit);
             this.xtraTabPage1.Controls.Add(this.SyncronizeButton);
+            this.xtraTabPage1.Controls.Add(this.DatabaseEncryptionButton);
             this.xtraTabPage1.Controls.Add(this.labelControl86);
             this.xtraTabPage1.Controls.Add(this.labelControl87);
             this.xtraTabPage1.Controls.Add(this.MaxPacketEdit);
@@ -437,6 +441,14 @@
             this.SyncronizeButton.Size = new System.Drawing.Size(200, 23);
             this.SyncronizeButton.TabIndex = 41;
             this.SyncronizeButton.Text = "Syncronize Remote DB";
+            // 
+            // DatabaseEncryptionButton
+            // 
+            this.DatabaseEncryptionButton.Location = new System.Drawing.Point(20, 226);
+            this.DatabaseEncryptionButton.Name = "DatabaseEncryptionButton";
+            this.DatabaseEncryptionButton.Size = new System.Drawing.Size(200, 23);
+            this.DatabaseEncryptionButton.TabIndex = 41;
+            this.DatabaseEncryptionButton.Text = "Config Database Encryption";
             // 
             // labelControl86
             // 
@@ -2398,8 +2410,7 @@
             this.Controls.Add(this.ribbon);
             this.Name = "ConfigView";
             this.Ribbon = this.ribbon;
-            this.Text = "Config View";
-            this.Load += new System.EventHandler(this.ConfigView_Load);
+            this.Text = "Config";
             ((System.ComponentModel.ISupportInitialize)(this.ribbon)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.xtraTabControl1)).EndInit();
             this.xtraTabControl1.ResumeLayout(false);
@@ -2557,8 +2568,8 @@
         private DevExpress.XtraEditors.CheckEdit AllowChangePasswordEdit;
         private DevExpress.XtraEditors.LabelControl labelControl7;
         private DevExpress.XtraEditors.CheckEdit AllowNewAccountEdit;
-        private System.Windows.Forms.OpenFileDialog OpenDialog;
-        private System.Windows.Forms.FolderBrowserDialog FolderDialog;
+        private DevExpress.XtraEditors.XtraOpenFileDialog OpenDialog;
+        private DevExpress.XtraEditors.XtraFolderBrowserDialog FolderDialog;
         private DevExpress.XtraTab.XtraTabPage xtraTabPage4;
         private DevExpress.XtraEditors.LabelControl labelControl16;
         private DevExpress.XtraEditors.CheckEdit AllowRequestActivationEdit;
@@ -2711,6 +2722,7 @@
         private DevExpress.XtraEditors.LabelControl labelControl85;
         private DevExpress.XtraEditors.TimeSpanEdit PacketBanTimeEdit;
         private DevExpress.XtraEditors.SimpleButton SyncronizeButton;
+        private DevExpress.XtraEditors.SimpleButton DatabaseEncryptionButton;
         private DevExpress.XtraEditors.LabelControl labelControl86;
         private DevExpress.XtraEditors.LabelControl labelControl87;
         private DevExpress.XtraEditors.TextEdit MaxPacketEdit;

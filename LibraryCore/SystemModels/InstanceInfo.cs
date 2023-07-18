@@ -1,19 +1,16 @@
 ﻿using MirDB;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Library.SystemModels
 {
     //TODO - 
-    //Add instance dialog button to rejoin instance after death (same button, join an existing instance??)
     //Add conquest on instances
-    //Add teleporting(player, npc) on instances(figure how to teleport off instances but also through the same instances)
 
     public sealed class InstanceInfo : DBObject
     {
-        [Association("Map", true)]
-        public DBBindingList<InstanceMapInfo> Maps { get; set; }
-
+        [IsIdentity]
         public string Name
         {
             get { return _Name; }
@@ -149,6 +146,37 @@ namespace Library.SystemModels
         }
         private byte _MaxPlayerCount;
 
+        public ItemInfo RequiredItem
+        {
+            get { return _RequiredItem; }
+            set
+            {
+                if (_RequiredItem == value) return;
+
+                var oldValue = _RequiredItem;
+                _RequiredItem = value;
+
+                OnChanged(oldValue, value, "RequiredItem");
+            }
+        }
+        private ItemInfo _RequiredItem;
+
+        public bool RequiredItemSingleUse
+        {
+            get { return _RequiredItemSingleUse; }
+            set
+            {
+                if (_RequiredItemSingleUse == value) return;
+
+                var oldValue = _RequiredItemSingleUse;
+                _RequiredItemSingleUse = value;
+
+                OnChanged(oldValue, value, "RequiredItemSingleUse");
+            }
+        }
+
+        private bool _RequiredItemSingleUse;
+
         public MapRegion ConnectRegion
         {
             get { return _ConnectRegion; }
@@ -163,7 +191,6 @@ namespace Library.SystemModels
             }
         }
         private MapRegion _ConnectRegion;
-
 
         public MapRegion ReconnectRegion
         {
@@ -195,14 +222,25 @@ namespace Library.SystemModels
         }
         private int _CooldownTimeInMinutes;
 
+        [Association("Map", true)]
+        public DBBindingList<InstanceMapInfo> Maps { get; set; }
+
+        [Association("InstanceInfoStats", true)]
+        public DBBindingList<InstanceInfoStat> BuffStats { get; set; }
+
+        [JsonIgnore]
         [IgnoreProperty]
         public Dictionary<string, byte> UserRecord { get; set; }
 
+        [JsonIgnore]
         [IgnoreProperty]
         public Dictionary<string, DateTime> UserCooldown { get; set; }
 
+        [JsonIgnore]
         [IgnoreProperty]
         public Dictionary<string, DateTime> GuildCooldown { get; set; }
+
+        public Stats Stats = new();
 
         protected internal override void OnLoaded()
         {
@@ -211,11 +249,21 @@ namespace Library.SystemModels
             UserRecord = new Dictionary<string, byte>();
             UserCooldown = new Dictionary<string, DateTime>();
             GuildCooldown = new Dictionary<string, DateTime>();
+
+            StatsChanged();
+        }
+
+        public void StatsChanged()
+        {
+            Stats.Clear();
+            foreach (InstanceInfoStat stat in BuffStats)
+                Stats[stat.Stat] += stat.Amount;
         }
     }
 
     public class InstanceMapInfo : DBObject
     {
+        [IsIdentity]
         [Association("Map")]
         public InstanceInfo Instance
         {
@@ -232,6 +280,7 @@ namespace Library.SystemModels
         }
         private InstanceInfo _Instance;
 
+        [IsIdentity]
         public MapInfo Map
         {
             get { return _Map; }
@@ -246,5 +295,56 @@ namespace Library.SystemModels
             }
         }
         private MapInfo _Map;
+    }
+
+    public sealed class InstanceInfoStat : DBObject
+    {
+        [IsIdentity]
+        [Association("InstanceInfoStats")]
+        public InstanceInfo Instance
+        {
+            get { return _Instance; }
+            set
+            {
+                if (_Instance == value) return;
+
+                var oldValue = _Instance;
+                _Instance = value;
+
+                OnChanged(oldValue, value, "Instance");
+            }
+        }
+        private InstanceInfo _Instance;
+
+        [IsIdentity]
+        public Stat Stat
+        {
+            get { return _Stat; }
+            set
+            {
+                if (_Stat == value) return;
+
+                var oldValue = _Stat;
+                _Stat = value;
+
+                OnChanged(oldValue, value, "Stat");
+            }
+        }
+        private Stat _Stat;
+
+        public int Amount
+        {
+            get { return _Amount; }
+            set
+            {
+                if (_Amount == value) return;
+
+                var oldValue = _Amount;
+                _Amount = value;
+
+                OnChanged(oldValue, value, "Amount");
+            }
+        }
+        private int _Amount;
     }
 }
