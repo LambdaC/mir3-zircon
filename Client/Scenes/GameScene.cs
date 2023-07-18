@@ -84,7 +84,7 @@ namespace Client.Scenes
 
         #endregion
 
-        public bool GoldPickedUp;
+        public ClientUserCurrency CurrencyPickedUp = null;
 
         public MapObject MagicObject, MouseObject, TargetObject, FocusObject;
         public DXControl ItemLabel, MagicLabel;
@@ -147,15 +147,16 @@ namespace Client.Scenes
         public MainPanel MainPanel;
 
         public DXConfigWindow ConfigBox;
+        public CaptionDialog CaptionBox;
         public InventoryDialog InventoryBox;
         public CharacterDialog CharacterBox;
+        public FilterDropDialog FilterDropBox;
         public ExitDialog ExitBox;
         public ChatTextBox ChatTextBox;
         public BeltDialog BeltBox;
         public ChatOptionsDialog ChatOptionsBox;
         public NPCDialog NPCBox;
         public NPCGoodsDialog NPCGoodsBox;
-        public NPCSellDialog NPCSellBox;
         public NPCRepairDialog NPCRepairBox;
         public NPCRefinementStoneDialog NPCRefinementStoneBox;
         public NPCRefineDialog NPCRefineBox;
@@ -169,6 +170,7 @@ namespace Client.Scenes
         public NPCAccessoryLevelDialog NPCAccessoryLevelBox;
         public NPCAccessoryResetDialog NPCAccessoryResetBox;
         public NPCMasterRefineDialog NPCMasterRefineBox;
+        public NPCRollDialog NPCRollBox;
         public MiniMapDialog MiniMapBox;
         public BigMapDialog BigMapBox;
         public MagicDialog MagicBox;
@@ -176,21 +178,17 @@ namespace Client.Scenes
         public BuffDialog BuffBox;
         public StorageDialog StorageBox;
         public AutoPotionDialog AutoPotionBox;
-        public InspectDialog InspectBox;
+        public CharacterDialog InspectBox;
         public RankingDialog RankingBox;
         public MarketPlaceDialog MarketPlaceBox;
         public DungeonFinderDialog DungeonFinderBox;
-        public MailDialog MailBox;
-        public ReadMailDialog ReadMailBox;
-        public SendMailDialog SendMailBox;
+        public CommunicationDialog CommunicationBox;
         public TradeDialog TradeBox;
         public GuildDialog GuildBox;
         public GuildMemberDialog GuildMemberBox;
         public QuestDialog QuestBox;
         public QuestTrackerDialog QuestTrackerBox;
         public CompanionDialog CompanionBox;
-        public CompanionFilterDialog CompanionFilterBox;
-        public BlockDialog BlockBox;
         public MonsterDialog MonsterBox;
         public MagicBarDialog MagicBarBox;
         public EditCharacterDialog EditCharacterBox;
@@ -199,6 +197,7 @@ namespace Client.Scenes
         public NPCAccessoryRefineDialog NPCAccessoryRefineBox;
         public CurrencyDialog CurrencyBox;
 
+        public FishingDialog FishingBox;
         public FishingCatchDialog FishingCatchBox;
 
         public ClientUserItem[] Inventory = new ClientUserItem[Globals.InventorySize];
@@ -228,7 +227,7 @@ namespace Client.Scenes
                 if (_AutoRun == value) return;
                 _AutoRun = value;
                 
-                ReceiveChat(value ? "[AutoRun: On]" : "[AutoRun: Off]", MessageType.Hint);
+                ReceiveChat(value ? CEnvir.Language.GameSceneAutoRunOn : CEnvir.Language.GameSceneAutoRunOff, MessageType.Hint);
             }
         }
         private bool _AutoRun;
@@ -348,7 +347,16 @@ namespace Client.Scenes
             foreach (DXWindow window in DXWindow.Windows)
                 window.LoadSettings();
 
+            CharacterBox?.LoadSettings();
             InventoryBox?.LoadSettings();
+            MagicBox?.LoadSettings();
+            StorageBox?.LoadSettings();
+            TradeBox?.LoadSettings();
+            CompanionBox?.LoadSettings();
+            CommunicationBox?.LoadSettings();
+            RankingBox?.LoadSettings();
+            QuestBox?.LoadSettings();
+            FishingBox?.LoadSettings();
 
             LoadChatTabs();
         }
@@ -395,13 +403,26 @@ namespace Client.Scenes
                 Parent = this,
                 Visible = false,
             };
+
+            CaptionBox = new CaptionDialog
+            {
+                Parent = this,
+                Visible = false,
+            };
+
             InventoryBox = new InventoryDialog
             {
                 Parent = this,
                 Visible = false,
             };
 
-            CharacterBox = new CharacterDialog
+            CharacterBox = new CharacterDialog(false)
+            {
+                Parent = this,
+                Visible = false,
+            };
+
+            FilterDropBox = new FilterDropDialog
             {
                 Parent = this,
                 Visible = false,
@@ -429,11 +450,6 @@ namespace Client.Scenes
             {
                 Parent = this,
                 Visible = false
-            };
-            NPCSellBox = new NPCSellDialog
-            {
-                Parent = this,
-                Visible = false,
             };
 
             NPCRepairBox = new NPCRepairDialog
@@ -536,13 +552,18 @@ namespace Client.Scenes
                 Parent = this,
                 Visible = false
             };
-
-            InspectBox = new InspectDialog
+            NPCRollBox = new NPCRollDialog
             {
                 Parent = this,
                 Visible = false
             };
-            RankingBox = new RankingDialog
+
+            InspectBox = new CharacterDialog(true)
+            {
+                Parent = this,
+                Visible = false
+            };
+            RankingBox = new RankingDialog(true)
             {
                 Parent = this,
                 Visible = false
@@ -562,22 +583,11 @@ namespace Client.Scenes
                 Parent = this,
                 Visible = false
             };
-            MailBox = new MailDialog
+            CommunicationBox = new CommunicationDialog
             {
                 Parent = this,
                 Visible = false
             };
-            ReadMailBox = new ReadMailDialog
-            {
-                Parent = this,
-                Visible = false
-            };
-            SendMailBox = new SendMailDialog
-            {
-                Parent = this,
-                Visible = false
-            };
-
             TradeBox = new TradeDialog
             {
                 Parent = this,
@@ -609,16 +619,6 @@ namespace Client.Scenes
                 Parent = this,
                 Visible = false,
             };
-            CompanionFilterBox = new CompanionFilterDialog
-            {
-                Parent = this,
-                Visible = false,
-            };
-            BlockBox = new BlockDialog
-            {
-                Parent = this,
-                Visible = false
-            };
 
             MonsterBox = new MonsterDialog
             {
@@ -648,8 +648,13 @@ namespace Client.Scenes
                 Visible = false,
                 Parent = this,
             };
-
             NPCAccessoryRefineBox = new NPCAccessoryRefineDialog
+            {
+                Parent = this,
+                Visible = false,
+            };
+
+            FishingBox = new FishingDialog(CharacterBox)
             {
                 Parent = this,
                 Visible = false,
@@ -668,7 +673,16 @@ namespace Client.Scenes
             foreach (DXWindow window in DXWindow.Windows)
                 window.LoadSettings();
 
+            CharacterBox.LoadSettings();
+            MagicBox.LoadSettings();
             InventoryBox.LoadSettings();
+            StorageBox.LoadSettings();
+            TradeBox.LoadSettings();
+            CompanionBox.LoadSettings();
+            CommunicationBox.LoadSettings();
+            RankingBox.LoadSettings();
+            QuestBox.LoadSettings();
+            FishingBox.LoadSettings();
         }
 
         #region Methods
@@ -677,6 +691,8 @@ namespace Client.Scenes
             if (ConfigBox == null) return;
 
             ConfigBox.Location = new Point((Size.Width - ConfigBox.Size.Width)/2, (Size.Height - ConfigBox.Size.Height)/2);
+
+            CaptionBox.Location = Point.Empty;
 
             ChatOptionsBox.Location = new Point((Size.Width - ChatOptionsBox.Size.Width)/2, (Size.Height - ChatOptionsBox.Size.Height)/2);
             
@@ -696,7 +712,7 @@ namespace Client.Scenes
 
             MainPanel.Location = new Point((Size.Width - MainPanel.Size.Width)/2, Size.Height - MainPanel.Size.Height);
 
-            ChatTextBox.Location = new Point(MainPanel.Location.X, MainPanel.Location.Y - ChatTextBox.Size.Height);
+            ChatTextBox.Location = new Point((Size.Width - ChatTextBox.Size.Width) / 2, (Size.Height - ChatTextBox.Size.Height) / 2);
 
             BeltBox.Location = new Point(MainPanel.Location.X + MainPanel.Size.Width - BeltBox.Size.Width, MainPanel.Location.Y - BeltBox.Size.Height);
             
@@ -704,7 +720,7 @@ namespace Client.Scenes
 
             NPCGoodsBox.Location = new Point(0, NPCBox.Size.Height);
 
-            NPCSellBox.Location = new Point(NPCGoodsBox.Size.Width, NPCBox.Size.Height);
+            NPCRollBox.Location = new Point((Size.Width - NPCRollBox.Size.Width) / 2, (Size.Height - NPCRollBox.Size.Height) / 2);
 
             NPCRepairBox.Location = new Point(0, NPCBox.Size.Height);
 
@@ -728,15 +744,9 @@ namespace Client.Scenes
 
             MarketPlaceBox.Location = new Point((Size.Width - MarketPlaceBox.Size.Width) / 2, (Size.Height - MarketPlaceBox.Size.Height) / 2);
 
-            MailBox.Location = new Point((Size.Width - MailBox.Size.Width) / 2, (Size.Height - MailBox.Size.Height) / 2);
-
-            ReadMailBox.Location = new Point((Size.Width - ReadMailBox.Size.Width) / 2, (Size.Height - ReadMailBox.Size.Height) / 2);
-
-            SendMailBox.Location = new Point((Size.Width - SendMailBox.Size.Width) / 2, (Size.Height - SendMailBox.Size.Height) / 2);
+            CommunicationBox.Location = new Point((Size.Width - CommunicationBox.Size.Width) / 2, (Size.Height - CommunicationBox.Size.Height) / 2);
 
             CompanionBox.Location = new Point((Size.Width - CompanionBox.Size.Width) / 2, (Size.Height - CompanionBox.Size.Height) / 2);
-
-            BlockBox.Location = new Point((Size.Width - BlockBox.Size.Width) / 2, (Size.Height - BlockBox.Size.Height) / 2);
 
             MonsterBox.Location = new Point((Size.Width - MonsterBox.Size.Width) / 2, 50);
 
@@ -748,7 +758,9 @@ namespace Client.Scenes
 
             CurrencyBox.Location = new Point((Size.Width - CurrencyBox.Size.Width) / 2, (Size.Height - CurrencyBox.Size.Height) / 2);
 
-            FishingCatchBox.Location = new Point(((Size.Width - FishingCatchBox.Size.Width) / 2) - 10, ((Size.Height - FishingCatchBox.Size.Height) / 2) - 100);
+            FishingBox.Location = new Point(CharacterBox.Location.X + CharacterBox.Size.Width, CharacterBox.Location.Y);
+
+            FishingCatchBox.Location = new Point(((Size.Width - FishingCatchBox.Size.Width) / 2), ((Size.Height - FishingCatchBox.Size.Height) / 2) + 200);
         }
 
         public void SaveChatTabs()
@@ -858,7 +870,7 @@ namespace Client.Scenes
             }
 
             if (result)
-                Game.ReceiveChat("Chat Layout Loaded", MessageType.Announcement);
+                Game.ReceiveChat(CEnvir.Language.ChatLayoutLoaded, MessageType.Announcement);
             else
                 ChatOptionsBox.CreateDefaultWindows();
         }
@@ -927,7 +939,6 @@ namespace Client.Scenes
             {
                 CreateItemLabel();
             }
-
 
             MapControl.ProcessInput();
 
@@ -1008,15 +1019,6 @@ namespace Client.Scenes
             {
                 switch (action)
                 {
-                    //case KeyBindAction.FishingTemp:
-                    //    if (Observer) continue;
-
-                    //    if (CEnvir.Now < User.NextActionTime || User.ActionQueue.Count > 0) return;
-                    //    if (CEnvir.Now < User.ServerTime) return; //Next Server response Time.
-
-                    //    User.ServerTime = CEnvir.Now.AddSeconds(5);
-                    //    CEnvir.Enqueue(new C.FishingCast { CastOut = !GameScene.Game.User.Fishing });
-                    //    break;
                     case KeyBindAction.ConfigWindow:
                         ConfigBox.Visible = !ConfigBox.Visible;
                         break;
@@ -1056,6 +1058,9 @@ namespace Client.Scenes
                     case KeyBindAction.CompanionWindow:
                         CompanionBox.Visible = !CompanionBox.Visible;
                         break;
+                    case KeyBindAction.FilterDropWindow:
+                        FilterDropBox.Visible = !FilterDropBox.Visible;
+                        break;
                     case KeyBindAction.GroupWindow:
                         GroupBox.Visible = !GroupBox.Visible;
                         break;
@@ -1066,7 +1071,14 @@ namespace Client.Scenes
                         StorageBox.Visible = !StorageBox.Visible;
                         break;
                     case KeyBindAction.BlockListWindow:
-                        BlockBox.Visible = !BlockBox.Visible;
+                        CommunicationBox.Visible = !CommunicationBox.Visible;
+                        if (CommunicationBox.Visible)
+                            CommunicationBox.BlockTab.TabButton.InvokeMouseClick();
+                        break;
+                    case KeyBindAction.MailSendWindow:
+                        CommunicationBox.Visible = !CommunicationBox.Visible;
+                        if (CommunicationBox.Visible)
+                            CommunicationBox.SendTab.TabButton.InvokeMouseClick();
                         break;
                     case KeyBindAction.GuildWindow:
                         GuildBox.Visible = !GuildBox.Visible;
@@ -1123,11 +1135,7 @@ namespace Client.Scenes
                         break;
                     case KeyBindAction.MailBoxWindow:
                         if (Observer) continue;
-                        MailBox.Visible = !MailBox.Visible;
-                        break;
-                    case KeyBindAction.MailSendWindow:
-                        if (Observer) continue;
-                        SendMailBox.Visible = !SendMailBox.Visible;
+                        CommunicationBox.Visible = !CommunicationBox.Visible;
                         break;
                     case KeyBindAction.ChatOptionsWindow:
                         ChatOptionsBox.Visible = !ChatOptionsBox.Visible;
@@ -1475,7 +1483,7 @@ namespace Client.Scenes
             {
                 BackColour = Color.FromArgb(200, 0, 24, 48),
                 Border = true,
-                BorderColour = Color.FromArgb(148, 148, 49), // Color.FromArgb(144, 148, 48),
+                BorderColour = Color.Yellow, // Color.FromArgb(144, 148, 48),
                 DrawTexture = true,
                 IsControl = false,
                 IsVisible = true,
@@ -1483,7 +1491,7 @@ namespace Client.Scenes
 
             ItemInfo displayInfo = MouseItem.Info;
 
-            if (MouseItem.Info.Effect == ItemEffect.ItemPart)
+            if (MouseItem.Info.ItemEffect == ItemEffect.ItemPart)
                 displayInfo = Globals.ItemInfoList.Binding.First(x => x.Index == MouseItem.AddedStats[Stat.ItemIndex]);
             
 
@@ -1495,7 +1503,7 @@ namespace Client.Scenes
                 Text = displayInfo.ItemName 
             };
 
-            if (MouseItem.Info.Effect == ItemEffect.ItemPart)
+            if (MouseItem.Info.ItemEffect == ItemEffect.ItemPart)
                 label.Text += " - [Part]";
             ItemLabel.Size = new Size(label.DisplayArea.Right + 4, label.DisplayArea.Bottom);
 
@@ -1559,7 +1567,7 @@ namespace Client.Scenes
             if (needSpacer)
                 ItemLabel.Size = new Size(ItemLabel.Size.Width, ItemLabel.Size.Height + 4);
 
-            if (CEnvir.IsCurrencyItem(MouseItem.Info) || MouseItem.Info.Effect == ItemEffect.Experience)
+            if (CEnvir.IsCurrencyItem(MouseItem.Info) || MouseItem.Info.ItemEffect == ItemEffect.Experience)
             {
                 label = new DXLabel
                 {
@@ -1573,7 +1581,7 @@ namespace Client.Scenes
             }
 
 
-            if (MouseItem.Info.Effect == ItemEffect.ItemPart)
+            if (MouseItem.Info.ItemEffect == ItemEffect.ItemPart)
             {
                 label = new DXLabel
                 {
@@ -1601,7 +1609,7 @@ namespace Client.Scenes
             {
                 case ItemType.Consumable:
                 case ItemType.Scroll:
-                    if (MouseItem.Info.Effect == ItemEffect.StatExtractor || MouseItem.Info.Effect == ItemEffect.RefineExtractor)
+                    if (MouseItem.Info.ItemEffect == ItemEffect.StatExtractor || MouseItem.Info.ItemEffect == ItemEffect.RefineExtractor)
                         EquipmentItemInfo();
                     else
                         CreatePotionLabel();
@@ -2013,7 +2021,7 @@ namespace Client.Scenes
                     Text = displayInfo.Description,
                 };
 
-                if (displayInfo.Effect == ItemEffect.FootBallWhistle)
+                if (displayInfo.ItemEffect == ItemEffect.FootBallWhistle)
                     label.ForeColour = Color.Red;
 
                 ItemLabel.Size = new Size(label.DisplayArea.Right + 4 > ItemLabel.Size.Width ? label.DisplayArea.Right + 4 : ItemLabel.Size.Width,
@@ -2077,7 +2085,7 @@ namespace Client.Scenes
                     Parent = ItemLabel,
                 };
 
-                DateTime value = MouseItem.Info.Effect == ItemEffect.PillOfReincarnation ? ReincarnationPillTime : ItemReviveTime;
+                DateTime value = MouseItem.Info.ItemEffect == ItemEffect.PillOfReincarnation ? ReincarnationPillTime : ItemReviveTime;
 
                 if (CEnvir.Now >= value)
                 {
@@ -2204,7 +2212,7 @@ namespace Client.Scenes
 
             ItemInfo displayInfo = MouseItem.Info;
 
-            if (MouseItem.Info.Effect == ItemEffect.ItemPart)
+            if (MouseItem.Info.ItemEffect == ItemEffect.ItemPart)
                 displayInfo = Globals.ItemInfoList.Binding.First(x => x.Index == MouseItem.AddedStats[Stat.ItemIndex]);
 
             stats.Add(displayInfo.Stats, displayInfo.ItemType != ItemType.Weapon);
@@ -2462,7 +2470,6 @@ namespace Client.Scenes
                 IsVisible = true,
             };
 
-
             DXLabel label = new DXLabel
             {
                 ForeColour = Color.Yellow,
@@ -2474,39 +2481,47 @@ namespace Client.Scenes
 
             ClientUserMagic magic;
 
-
             int width;
+            bool disciplineSkill = false;
+
             if (User.Magics.TryGetValue(MouseMagic, out magic))
             {
                 int level = magic.Level;
+                disciplineSkill = magic.Info.School == MagicSchool.Discipline;
+
+                if (disciplineSkill)
+                {
+                    MagicLabel.BorderColour = Color.LimeGreen;
+                }
+
                 label = new DXLabel
                 {
-                    ForeColour = Color.Green,
+                    ForeColour = Color.LimeGreen,
                     Location = new Point(4, MagicLabel.DisplayArea.Bottom),
                     Parent = MagicLabel,
                     Text = $"Current Level: {level}",
                 };
-                string text = null;
-                switch (magic.Level)
+
+                string text;
+                if (magic.Level < Globals.MagicMaxLevel)
                 {
-                    case 0:
-                        text = $"{magic.Experience}/{magic.Info.Experience1}";
-                        break;
-                    case 1:
-                        text = $"{magic.Experience}/{magic.Info.Experience2}";
-                        break;
-                    case 2:
-                        text = $"{magic.Experience}/{magic.Info.Experience3}";
-                        break;
-                    default:
-                        text = $"{magic.Experience}/{(magic.Level - 2) * 500}";
-                        break;
+                    text = magic.Level switch
+                    {
+                        0 => $"{magic.Experience}/{magic.Info.Experience1}",
+                        1 => $"{magic.Experience}/{magic.Info.Experience2}",
+                        2 => $"{magic.Experience}/{magic.Info.Experience3}",
+                        _ => $"{magic.Experience}/{(magic.Level - 2) * 500}",
+                    };
+                }
+                else
+                {
+                    text = $"Max Level";
                 }
 
                 width = label.DisplayArea.Right;
                 label = new DXLabel
                 {
-                    ForeColour = Color.Green,
+                    ForeColour = Color.LimeGreen,
                     Location = new Point(width + 4, MagicLabel.DisplayArea.Bottom),
                     Parent = MagicLabel,
                     Text = $"Experience: {text}",
@@ -2519,7 +2534,7 @@ namespace Client.Scenes
                     ForeColour = Color.Red,
                     Location = new Point(4, MagicLabel.DisplayArea.Bottom),
                     Parent = MagicLabel,
-                    Text = $"Not learned.",
+                    Text = $"Not learned",
                 };
             }
             MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom);
@@ -2577,16 +2592,17 @@ namespace Client.Scenes
             };
             MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom);
 
-
-            label = new DXLabel
+            if (!disciplineSkill)
             {
-                ForeColour = magic?.Level < 3 ? Color.Red : Color.White,
-                Location = new Point(4, MagicLabel.DisplayArea.Bottom),
-                Parent = MagicLabel,
-                Text = $"Rank 4+ Requirement: Books",
-            };
-            MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom);
-            
+                label = new DXLabel
+                {
+                    ForeColour = magic?.Level < 3 ? Color.Red : Color.White,
+                    Location = new Point(4, MagicLabel.DisplayArea.Bottom),
+                    Parent = MagicLabel,
+                    Text = $"Rank 4+ Requirement: Books",
+                };
+                MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom);
+            }
 
             label = new DXLabel
             {
@@ -2596,9 +2612,11 @@ namespace Client.Scenes
                 Parent = MagicLabel,
                 Text = MouseMagic.Description,
             };
-            label.Size = DXLabel.GetHeight(label, MagicLabel.Size.Width );
-            MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom + 4);  
+            label.Size = DXLabel.GetHeight(label, MagicLabel.Size.Width);
+
+            MagicLabel.Size = new Size(label.DisplayArea.Right + 4 > MagicLabel.Size.Width ? label.DisplayArea.Right + 4 : MagicLabel.Size.Width, label.DisplayArea.Bottom + 4);
         }
+
         private void SetItemInfo(SetInfo set)
         {
 
@@ -2751,7 +2769,7 @@ namespace Client.Scenes
 
         public void UseMagic(SpellKey key)
         {
-            if (Game.Observer || User == null || User.Horse != HorseType.None || MagicBarBox == null || User.Fishing) return;
+            if (Game.Observer || User == null || User.Horse != HorseType.None || MagicBarBox == null) return;
 
             ClientUserMagic magic = null;
 
@@ -2826,7 +2844,7 @@ namespace Client.Scenes
 
                     if (User.AttackMagic != magic.Info.Magic)
                     {
-                        ReceiveChat($"{magic.Info.Name} is now Ready.", MessageType.Hint);
+                        ReceiveChat(string.Format(CEnvir.Language.GameSceneSkillReady, magic.Info.Name), MessageType.Hint);
                         int attackDelay = Globals.AttackDelay - MapObject.User.Stats[Stat.AttackSpeed] * Globals.ASpeedRate;
                         attackDelay = Math.Max(800, attackDelay);
 
@@ -2845,7 +2863,7 @@ namespace Client.Scenes
 
                     if (User.AttackMagic != magic.Info.Magic)
                     {
-                        ReceiveChat($"{magic.Info.Name} is now Ready.", MessageType.Hint);
+                        ReceiveChat(string.Format(CEnvir.Language.GameSceneSkillReady, magic.Info.Name), MessageType.Hint);
                         ToggleTime = CEnvir.Now + TimeSpan.FromMilliseconds(500);
 
                         User.AttackMagic = magic.Info.Magic;
@@ -2864,7 +2882,7 @@ namespace Client.Scenes
                 if (CEnvir.Now >= OutputTime)
                 {
                     OutputTime = CEnvir.Now.AddSeconds(1);
-                    ReceiveChat($"Unable to cast {magic.Info.Name}, it is still on Cooldown.", MessageType.Hint);
+                    ReceiveChat(string.Format(CEnvir.Language.GameSceneCastInCooldown, magic.Info.Name), MessageType.Hint);
                 }
                 return;
             }
@@ -2878,7 +2896,7 @@ namespace Client.Scenes
                         if (CEnvir.Now >= OutputTime)
                         {
                             OutputTime = CEnvir.Now.AddSeconds(1);
-                            ReceiveChat($"Unable to cast {magic.Info.Name} whilst in combat", MessageType.Hint);
+                            ReceiveChat(string.Format(CEnvir.Language.GameSceneCastInCombat, magic.Info.Name), MessageType.Hint);
                         }
                         return;
                     }
@@ -2888,7 +2906,7 @@ namespace Client.Scenes
                         if (CEnvir.Now >= OutputTime)
                         {
                             OutputTime = CEnvir.Now.AddSeconds(1);
-                            ReceiveChat($"Unable to cast {magic.Info.Name}, You do not have enough Health.", MessageType.Hint);
+                            ReceiveChat(string.Format(CEnvir.Language.GameSceneCastNoEnoughHealth, magic.Info.Name), MessageType.Hint);
                         }
                         return;
                     }
@@ -2901,7 +2919,7 @@ namespace Client.Scenes
                         if (CEnvir.Now >= OutputTime)
                         {
                             OutputTime = CEnvir.Now.AddSeconds(1);
-                            ReceiveChat($"Unable to cast {magic.Info.Name}, You do not have enough Mana.", MessageType.Hint);
+                            ReceiveChat(string.Format(CEnvir.Language.GameSceneCastNoEnoughMana, magic.Info.Name), MessageType.Hint);
                         }
                         return;
                     }
@@ -2912,7 +2930,7 @@ namespace Client.Scenes
                         if (CEnvir.Now >= OutputTime)
                         {
                             OutputTime = CEnvir.Now.AddSeconds(1);
-                            ReceiveChat($"Unable to cast {magic.Info.Name}, You do not have enough Health.", MessageType.Hint);
+                            ReceiveChat(string.Format(CEnvir.Language.GameSceneCastNoEnoughHealth, magic.Info.Name), MessageType.Hint);
                         }
                         return;
                     }
@@ -2921,7 +2939,7 @@ namespace Client.Scenes
                         if (CEnvir.Now >= OutputTime)
                         {
                             OutputTime = CEnvir.Now.AddSeconds(1);
-                            ReceiveChat($"Unable to cast {magic.Info.Name}, You do not have enough Mana.", MessageType.Hint);
+                            ReceiveChat(string.Format(CEnvir.Language.GameSceneCastNoEnoughMana, magic.Info.Name), MessageType.Hint);
                         }
                         return;
                     }
@@ -2933,7 +2951,7 @@ namespace Client.Scenes
                         if (CEnvir.Now >= OutputTime)
                         {
                             OutputTime = CEnvir.Now.AddSeconds(1);
-                            ReceiveChat($"Unable to cast {magic.Info.Name}, You do not have enough Mana.", MessageType.Hint);
+                            ReceiveChat(string.Format(CEnvir.Language.GameSceneCastNoEnoughMana, magic.Info.Name), MessageType.Hint);
                         }
                         return;
                     }
@@ -2967,7 +2985,7 @@ namespace Client.Scenes
                     {
                         if (CEnvir.Now < OutputTime) return;
                         OutputTime = CEnvir.Now.AddSeconds(1);
-                        ReceiveChat($"Unable to cast {magic.Info.Name}, Your target is too far.", MessageType.Hint);
+                        ReceiveChat(string.Format(CEnvir.Language.GameSceneCastTooFar, magic.Info.Name), MessageType.Hint);
                         return;
                     }
 
@@ -2985,7 +3003,9 @@ namespace Client.Scenes
                 case MagicType.GustBlast:
                 case MagicType.ElectricShock:
                 case MagicType.AdamantineFireBall:
+                case MagicType.FireBounce:
                 case MagicType.ThunderBolt:
+                case MagicType.ChainLightning:
                 case MagicType.IceBlades:
                 case MagicType.Cyclone:
                 case MagicType.ExpelUndead:
@@ -3009,26 +3029,17 @@ namespace Client.Scenes
                         else
                             MapObject.MagicObject = null;
                     }
-
-                    //    if (target == null) //TODO
-                    //        ;//target = GetCloseesTarget();
                     break;
                 case MagicType.WraithGrip:
                 case MagicType.HellFire:
                 case MagicType.Abyss:
                     if (CanAttackTarget(MouseObject))
                         target = MouseObject;
-
-                    //    if (target == null) //TODO
-                    //        ;//target = GetCloseesTarget();
                     break;
                 case MagicType.Interchange:
                 case MagicType.Beckon:
                     if (CanAttackTarget(MouseObject))
                         target = MouseObject;
-
-                    //    if (target == null) //TODO
-                    //        ;//target = GetCloseesTarget();
                     break;
                 case MagicType.MassBeckon:
                     break;
@@ -3117,7 +3128,6 @@ namespace Client.Scenes
                 case MagicType.DragonTornado:
                 case MagicType.GeoManipulation:
                 case MagicType.Transparency:
-                case MagicType.ChainLightning:
                 case MagicType.MeteorShower:
                 case MagicType.Tempest:
                 case MagicType.Asteroid:
@@ -3135,7 +3145,7 @@ namespace Client.Scenes
                     {
                         if (CEnvir.Now < OutputTime) return;
                         OutputTime = CEnvir.Now.AddSeconds(1);
-                        ReceiveChat($"Unable to cast {magic.Info.Name}, Your target is too far.", MessageType.Hint);
+                        ReceiveChat(string.Format(CEnvir.Language.GameSceneCastTooFar, magic.Info.Name), MessageType.Hint);
                         return;
                     }
                     break;
@@ -3147,7 +3157,7 @@ namespace Client.Scenes
             {
                 if (CEnvir.Now < OutputTime) return;
                 OutputTime = CEnvir.Now.AddSeconds(1);
-                ReceiveChat($"Unable to cast {magic.Info.Name}, Your target is too far.", MessageType.Hint);
+                ReceiveChat(string.Format(CEnvir.Language.GameSceneCastTooFar, magic.Info.Name), MessageType.Hint);
                 return;
             }
 
@@ -3182,9 +3192,8 @@ namespace Client.Scenes
                 FocusObject = (MonsterObject) MouseObject;
 
             User.MagicAction = new ObjectAction(MirAction.Spell, direction, MapObject.User.CurrentLocation, magic.Info.Magic, new List<uint> { targetID }, new List<Point> { targetLocation }, false);
-
-
         }
+
         private bool CanAttackTarget(MapObject ob)
         {
             if (ob == null || ob.Dead) return false;
@@ -3216,14 +3225,16 @@ namespace Client.Scenes
             {
                 ItemInfo info = SelectedCell.Item.Info;
 
-                if (info.Effect == ItemEffect.ItemPart)
+                if (info.ItemEffect == ItemEffect.ItemPart)
                     info = Globals.ItemInfoList.Binding.First(x => x.Index == SelectedCell.Item.AddedStats[Stat.ItemIndex]);
-                
+
                 image = info.Image;
                 color = SelectedCell.Item.Colour;
             }
-            else if (GoldPickedUp)
-                image = 124;
+            else if (CurrencyPickedUp != null)
+            {
+                image = CEnvir.CurrencyImage(CurrencyPickedUp.Info.DropItem, CurrencyPickedUp.Amount);
+            }
 
             MirLibrary library;
 
@@ -3286,7 +3297,7 @@ namespace Client.Scenes
         {
             foreach (ClientUserItem item in items)
             {
-                if (item.Info.Effect == ItemEffect.Experience) continue;
+                if (item.Info.ItemEffect == ItemEffect.Experience) continue;
                 if ((item.Flags & UserItemFlags.QuestItem) == UserItemFlags.QuestItem) continue;
 
                 var currency = User.GetCurrency(item.Info);
@@ -3344,7 +3355,7 @@ namespace Client.Scenes
         {
             foreach (ClientUserItem item in items)
             {
-                if (item.Info.Effect == ItemEffect.Experience) continue;
+                if (item.Info.ItemEffect == ItemEffect.Experience) continue;
                 if ((item.Flags & UserItemFlags.QuestItem) == UserItemFlags.QuestItem) continue;
 
                 var currency = User.GetCurrency(item.Info);
@@ -3514,14 +3525,25 @@ namespace Client.Scenes
                 case EquipmentSlot.Shield:
                     if (User.HandWeight - (Equipment[(int) slot]?.Info.Weight ?? 0) + item.Weight > User.Stats[Stat.HandWeight])
                     {
-                        ReceiveChat($"Unable to hold {item.Info.ItemName}, it is too heavy.", MessageType.System);
+                        ReceiveChat(string.Format(CEnvir.Language.GameSceneHoldTooHeavy, item.Info.ItemName), MessageType.System);
+                        return false;
+                    }
+                    break;
+                case EquipmentSlot.Hook:
+                case EquipmentSlot.Float:
+                case EquipmentSlot.Bait:
+                case EquipmentSlot.Finder:
+                case EquipmentSlot.Reel:
+                    if (Equipment[(int)EquipmentSlot.Weapon]?.Info.ItemEffect != ItemEffect.FishingRod)
+                    {
+                        ReceiveChat(string.Format(CEnvir.Language.GameSceneNeedFishingRod, item.Info.ItemName), MessageType.System);
                         return false;
                     }
                     break;
                 default:
                     if (User.WearWeight - (Equipment[(int) slot]?.Info.Weight ?? 0) + item.Weight > User.Stats[Stat.WearWeight])
                     {
-                        ReceiveChat($"Unable to wear {item.Info.ItemName}, it is too heavy.", MessageType.System);
+                        ReceiveChat(string.Format(CEnvir.Language.GameSceneWearTooHeavy, item.Info.ItemName), MessageType.System);
                         return false;
                     }
                     break;
@@ -3529,6 +3551,7 @@ namespace Client.Scenes
 
             return true;
         }
+
         public bool CanCompanionWearItem(ClientUserItem item, CompanionSlot slot)
         {
             if (Companion == null) return false;
@@ -3561,6 +3584,7 @@ namespace Client.Scenes
             ExperienceChanged();
             HealthChanged();
             ManaChanged();
+            FocusChanged();
             CurrencyChanged();
             SafeZoneChanged();
             AttackModeChanged();
@@ -3574,7 +3598,6 @@ namespace Client.Scenes
             NPCGoodsBox.CloseButton.Enabled = !Observer;
             NPCRefineBox.CloseButton.Enabled = !Observer;
             NPCRepairBox.CloseButton.Enabled = !Observer;
-            NPCSellBox.CloseButton.Enabled = !Observer;
             NPCRefineRetrieveBox.CloseButton.Enabled = !Observer;
         }
         public void LevelChanged()
@@ -3624,11 +3647,14 @@ namespace Client.Scenes
 
             HealthChanged();
             ManaChanged();
+            FocusChanged();
 
             foreach (NPCGoodsCell cell in NPCGoodsBox.Cells)
                 cell.UpdateColours();
 
             CharacterBox.UpdateStats();
+
+            FilterDropBox.UpdateDropFilters();
         }
         public void ExperienceChanged()
         {
@@ -3651,6 +3677,14 @@ namespace Client.Scenes
 
             MainPanel.ManaLabel.Text = $"{User.CurrentMP}/{User.Stats[Stat.Mana]}";
         }
+        public void FocusChanged()
+        {
+            if (User == null) return;
+
+            MainPanel.FocusLabel.Visible = User.Stats[Stat.Focus] > 0;
+            MainPanel.FocusLabel.Text = $"{User.CurrentFP}/{User.Stats[Stat.Focus]}";
+        }
+
         public void AttackModeChanged()
         {
             if (User == null) return;
@@ -3679,8 +3713,8 @@ namespace Client.Scenes
         {
             if (User == null) return;
 
-            InventoryBox.GoldLabel.Text = User.Gold.Amount.ToString("#,##0");
-            InventoryBox.GameGoldLabel.Text = User.GameGold.Amount.ToString("#,##0");
+            InventoryBox.RefreshCurrency();
+
             MarketPlaceBox.GameGoldBox.Value = User.GameGold.Amount;
             MarketPlaceBox.HuntGoldBox.Value = User.HuntGold.Amount;
             NPCAdoptCompanionBox.RefreshUnlockButton();
@@ -3707,7 +3741,6 @@ namespace Client.Scenes
             InventoryBox.WeightLabel.Text = $"{User.BagWeight} of {User.Stats[Stat.BagWeight]}";
 
             InventoryBox.WeightLabel.ForeColour = User.BagWeight > User.Stats[Stat.BagWeight] ? Color.Red : Color.White;
-
 
             CharacterBox.WearWeightLabel.Text = $"{User.WearWeight}/{User.Stats[Stat.WearWeight]}";
             CharacterBox.HandWeightLabel.Text = $"{User.HandWeight}/{User.Stats[Stat.HandWeight]}";
@@ -4006,6 +4039,10 @@ namespace Client.Scenes
                         icon = 76;
                         colour = Color.Blue;
                         break;
+                    case QuestType.Weekly:
+                        icon = 76;
+                        colour = Color.Blue;
+                        break;
                     case QuestType.Repeatable:
                         icon = 16;
                         colour = Color.Yellow;
@@ -4014,10 +4051,10 @@ namespace Client.Scenes
                         icon = 56;
                         colour = Color.Green;
                         break;
-                    //case QuestType.Account:
-                    //    icon = 36;
-                    //    colour = Color.Purple;
-                    //    break;
+                    case QuestType.Account:
+                        icon = 36;
+                        colour = Color.MediumPurple;
+                        break;
                 }
 
                 switch (NPC.CurrentQuest.Icon)
@@ -4094,7 +4131,7 @@ namespace Client.Scenes
                 _MouseItem = null;
                 _MouseMagic = null;
 
-                GoldPickedUp = false;
+                CurrencyPickedUp = null;
 
                 MagicObject = null;
                 MouseObject = null;
@@ -4205,14 +4242,6 @@ namespace Client.Scenes
                     NPCGoodsBox = null;
                 }
 
-                if (NPCSellBox != null)
-                {
-                    if (!NPCSellBox.IsDisposed)
-                        NPCSellBox.Dispose();
-
-                    NPCSellBox = null;
-                }
-
                 if (NPCRefinementStoneBox != null)
                 {
                     if (!NPCRefinementStoneBox.IsDisposed)
@@ -4244,6 +4273,7 @@ namespace Client.Scenes
 
                     NPCRefineRetrieveBox = null;
                 }
+
                 if (NPCMasterRefineBox != null)
                 {
                     if (!NPCMasterRefineBox.IsDisposed)
@@ -4252,6 +4282,13 @@ namespace Client.Scenes
                     NPCMasterRefineBox = null;
                 }
 
+                if (NPCRollBox != null)
+                {
+                    if (!NPCRollBox.IsDisposed)
+                        NPCRollBox.Dispose();
+
+                    NPCRollBox = null;
+                }
 
                 if (NPCQuestBox != null)
                 {
@@ -4396,28 +4433,12 @@ namespace Client.Scenes
                     MarketPlaceBox = null;
                 }
 
-                if (MailBox != null)
+                if (CommunicationBox != null)
                 {
-                    if (!MailBox.IsDisposed)
-                        MailBox.Dispose();
+                    if (!CommunicationBox.IsDisposed)
+                        CommunicationBox.Dispose();
 
-                    MailBox = null;
-                }
-
-                if (ReadMailBox != null)
-                {
-                    if (!ReadMailBox.IsDisposed)
-                        ReadMailBox.Dispose();
-
-                    ReadMailBox = null;
-                }
-
-                if (SendMailBox != null)
-                {
-                    if (!SendMailBox.IsDisposed)
-                        SendMailBox.Dispose();
-
-                    SendMailBox = null;
+                    CommunicationBox = null;
                 }
 
                 if (TradeBox != null)
@@ -4468,14 +4489,6 @@ namespace Client.Scenes
                     CompanionBox = null;
                 }
 
-                if (BlockBox != null)
-                {
-                    if (!BlockBox.IsDisposed)
-                        BlockBox.Dispose();
-
-                    BlockBox = null;
-                }
-                
                 if (MonsterBox != null)
                 {
                     if (!MonsterBox.IsDisposed)
@@ -4498,6 +4511,22 @@ namespace Client.Scenes
                         NPCAccessoryRefineBox.Dispose();
 
                     NPCAccessoryRefineBox = null;
+                }
+
+                if (FishingBox != null)
+                {
+                    if (!FishingBox.IsDisposed)
+                        FishingBox.Dispose();
+
+                    FishingBox = null;
+                }
+
+                if (FishingCatchBox != null)
+                {
+                    if (!FishingCatchBox.IsDisposed)
+                        FishingCatchBox.Dispose();
+
+                    FishingCatchBox = null;
                 }
 
                 Inventory = null;

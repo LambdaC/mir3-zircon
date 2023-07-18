@@ -19,7 +19,7 @@ namespace Client.Scenes.Views
 
         public override WindowType Type => WindowType.BuffBox;
         public override bool CustomSize => false;
-        public override bool AutomaticVisiblity => true;
+        public override bool AutomaticVisibility => true;
         #endregion
 
         public BuffDialog()
@@ -213,6 +213,9 @@ namespace Client.Scenes.Views
                     case BuffType.MapEffect:
                         icon.Index = 76;
                         break;
+                    case BuffType.InstanceEffect:
+                        icon.Index = 76;
+                        break;
                     case BuffType.Guild:
                         icon.Index = 140;
                         break;
@@ -272,6 +275,9 @@ namespace Client.Scenes.Views
                     break;
                 case BuffType.MapEffect:
                     text = $"Map Effect\n";
+                    break;
+                case BuffType.InstanceEffect:
+                    text = $"Instance Effect\n";
                     break;
                 case BuffType.ItemBuff:
                     ItemInfo info = Globals.ItemInfoList.Binding.First(x => x.Index == buff.ItemIndex);

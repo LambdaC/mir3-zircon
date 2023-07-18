@@ -334,7 +334,7 @@ namespace Client.UserModels
         [Description("Currency Window")]
         CurrencyWindow,
 
-        //[Description("Test")]
-        //FishingTemp,
+        [Description("Filter Drop Window")]
+        FilterDropWindow,
     }
 }

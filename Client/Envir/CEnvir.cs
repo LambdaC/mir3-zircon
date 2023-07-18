@@ -55,11 +55,13 @@ namespace Client.Envir
         public static DBCollection<KeyBindInfo> KeyBinds;
         public static DBCollection<WindowSetting> WindowSettings;
         public static DBCollection<CastleInfo> CastleInfoList;
-        public static Session Session;
+        public static MirDB.Session Session;
 
         public static ConcurrentQueue<string> ChatLog = new ConcurrentQueue<string>();
 
         public static bool Loaded;
+        public static bool Loading { get; private set; }
+
         public static string BuyAddress;
         public static string C;
 
@@ -70,6 +72,8 @@ namespace Client.Envir
 
         static CEnvir()
         {
+            LoadLanguage();
+
             Thread workThread = new Thread(SaveChatLoop) { IsBackground = true };
             workThread.Start();
 
@@ -83,10 +87,10 @@ namespace Client.Envir
             switch (Config.Language.ToUpper())
             {
                 case "ENGLISH":
-                    Language = (StringMessages)ConfigReader.ConfigObjects[typeof(EnglishMessages)]; //Todo Language Selections
+                    Language = (StringMessages)ConfigReader.ConfigObjects[typeof(EnglishMessages)];
                     break;
                 case "CHINESE":
-                    Language = (StringMessages)ConfigReader.ConfigObjects[typeof(ChineseMessages)]; //Todo Language Selections
+                    Language = (StringMessages)ConfigReader.ConfigObjects[typeof(ChineseMessages)];
                     break;
             }
 
@@ -173,7 +177,7 @@ namespace Client.Envir
 
             if (DXControl.FocusControl != null)
                 debugText += $", Focus Control: {DXControl.FocusControl.GetType().Name}";
-            
+
             debugText += $", Mouse: {CEnvir.MouseLocation}";
 
             if (GameScene.Game != null)
@@ -314,39 +318,52 @@ namespace Client.Envir
 
         public static void LoadDatabase()
         {
+            Loading = true;
             Task.Run(() =>
             {
-                Session = new Session(SessionMode.Users, @".\Data\") { BackUp = false };
+                try
+                {
+                    Session = new MirDB.Session(SessionMode.Users, @".\Data\") { BackUp = false };
 
-                Session.Initialize(
-                    Assembly.GetAssembly(typeof(ItemInfo)),
-                    Assembly.GetAssembly(typeof(WindowSetting))
-                );
+                    Session.Initialize(
+                        Assembly.GetAssembly(typeof(ItemInfo)),
+                        Assembly.GetAssembly(typeof(WindowSetting))
+                    );
 
-                Globals.ItemInfoList = Session.GetCollection<ItemInfo>();
-                Globals.MagicInfoList = Session.GetCollection<MagicInfo>();
-                Globals.MapInfoList = Session.GetCollection<MapInfo>();
-                Globals.CurrencyInfoList = Session.GetCollection<CurrencyInfo>();
-                Globals.InstanceInfoList = Session.GetCollection<InstanceInfo>();
-                Globals.NPCPageList = Session.GetCollection<NPCPage>();
-                Globals.MonsterInfoList = Session.GetCollection<MonsterInfo>();
-                Globals.StoreInfoList = Session.GetCollection<StoreInfo>();
-                Globals.NPCInfoList = Session.GetCollection<NPCInfo>();
-                Globals.MovementInfoList = Session.GetCollection<MovementInfo>();
-                Globals.QuestInfoList = Session.GetCollection<QuestInfo>();
-                Globals.QuestTaskList = Session.GetCollection<QuestTask>();
-                Globals.CompanionInfoList = Session.GetCollection<CompanionInfo>();
-                Globals.CompanionLevelInfoList = Session.GetCollection<CompanionLevelInfo>();
+                    Globals.ItemInfoList = Session.GetCollection<ItemInfo>();
+                    Globals.MagicInfoList = Session.GetCollection<MagicInfo>();
+                    Globals.MapInfoList = Session.GetCollection<MapInfo>();
+                    Globals.CurrencyInfoList = Session.GetCollection<CurrencyInfo>();
+                    Globals.InstanceInfoList = Session.GetCollection<InstanceInfo>();
+                    Globals.NPCPageList = Session.GetCollection<NPCPage>();
+                    Globals.MonsterInfoList = Session.GetCollection<MonsterInfo>();
+                    Globals.FishingInfoList = Session.GetCollection<FishingInfo>();
+                    Globals.StoreInfoList = Session.GetCollection<StoreInfo>();
+                    Globals.NPCInfoList = Session.GetCollection<NPCInfo>();
+                    Globals.MovementInfoList = Session.GetCollection<MovementInfo>();
+                    Globals.QuestInfoList = Session.GetCollection<QuestInfo>();
+                    Globals.QuestTaskList = Session.GetCollection<QuestTask>();
+                    Globals.CompanionInfoList = Session.GetCollection<CompanionInfo>();
+                    Globals.CompanionLevelInfoList = Session.GetCollection<CompanionLevelInfo>();
+                    Globals.DisciplineInfoList = Session.GetCollection<DisciplineInfo>();
 
-                KeyBinds = Session.GetCollection<KeyBindInfo>();
-                WindowSettings = Session.GetCollection<WindowSetting>();
-                CastleInfoList = Session.GetCollection<CastleInfo>();
+                    KeyBinds = Session.GetCollection<KeyBindInfo>();
+                    WindowSettings = Session.GetCollection<WindowSetting>();
+                    CastleInfoList = Session.GetCollection<CastleInfo>();
 
-                Globals.GoldInfo = Globals.CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold).DropItem;
+                    Globals.GoldInfo = Globals.CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold).DropItem;
 
-                CheckKeyBinds();
+                    CheckKeyBinds();
 
-                Loaded = true;
+                    if (!DXManager.ValidResolutions.Contains(Config.GameSize))
+                        Config.GameSize = DXManager.ValidResolutions[0];
+
+                    Loaded = true;
+                }
+                finally
+                {
+                    Loading = false;
+                }
             });
         }
 
@@ -407,7 +424,6 @@ namespace Client.Envir
                 MainPartsStorage = PartsStorage;
             }
 
-
             foreach (ClientUserItem item in items)
                 if (item.Slot >= 2000)
                     PartsStorage[item.Slot - Globals.PartsStorageOffset] = item;
@@ -450,11 +466,6 @@ namespace Client.Envir
 
             switch (action)
             {
-                //case KeyBindAction.FishingTemp:
-                //    bind.Category = "Temp";
-                //    bind.Key1 = Keys.F;
-                //    bind.Control1 = true;
-                //    break;
                 case KeyBindAction.ConfigWindow:
                     bind.Category = "Windows";
                     bind.Key1 = Keys.O;
@@ -809,6 +820,11 @@ namespace Client.Envir
                     bind.Key1 = Keys.C;
                     bind.Control1 = true;
                     break;
+                case KeyBindAction.FilterDropWindow:
+                    bind.Category = "Windows";
+                    bind.Key1 = Keys.F;
+                    bind.Control1 = true;
+                    break;
             }
         }
 
@@ -937,6 +953,21 @@ namespace Client.Envir
         public static bool IsCurrencyItem(ItemInfo info)
         {
             return Globals.CurrencyInfoList.Binding.FirstOrDefault(x => x.DropItem == info) != null;
+        }
+
+        public static int CurrencyImage(ItemInfo info, long count)
+        {
+            var currency = Globals.CurrencyInfoList.Binding.FirstOrDefault(x => x.DropItem == info);
+
+            if (currency == null)
+                return 0;
+
+            var image = currency.Images.OrderByDescending(x => x.Amount).FirstOrDefault(x => x.Amount <= count);
+
+            if (image != null)
+                return image.Image;
+            else
+                return currency.DropItem.Image;
         }
     }
 }

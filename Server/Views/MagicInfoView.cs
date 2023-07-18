@@ -11,7 +11,6 @@ namespace Server.Views
         {
             InitializeComponent();
 
-
             MagicInfoGridControl.DataSource = SMain.Session.GetCollection<MagicInfo>().Binding;
 
             MagicImageComboBox.Items.AddEnum<MagicType>();
@@ -35,6 +34,16 @@ namespace Server.Views
         private void MagicInfoView_Load(object sender, EventArgs e)
         {
 
+        }
+
+        private void ImportButton_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            JsonImporter.Import<MagicInfo>();
+        }
+
+        private void ExportButton_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            JsonExporter.Export<MagicInfo>(MagicInfoGridView);
         }
     }
 }

@@ -127,7 +127,7 @@ namespace Client.Scenes.Views
 
         public override WindowType Type => WindowType.None;
         public override bool CustomSize => false;
-        public override bool AutomaticVisiblity => false;
+        public override bool AutomaticVisibility => false;
 
         #endregion
 
@@ -155,12 +155,10 @@ namespace Client.Scenes.Views
 
         private void Image_MouseClick(object sender, MouseEventArgs e)
         {
-
             //if (SelectedInfo != GameScene.Game.MapControl.MapInfo) return;
 
             //if (MapObject.User.Buffs.All(z => z.Type != BuffType.Developer))
             //if (!SelectedInfo.AllowRT || !SelectedInfo.AllowTT || !GameScene.Game.MapControl.MapInfo.AllowRT || !GameScene.Game.MapControl.MapInfo.AllowTT) return;
-
 
             if ((e.Button & MouseButtons.Right) == MouseButtons.Right)
             {

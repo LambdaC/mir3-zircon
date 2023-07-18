@@ -42,6 +42,8 @@ namespace Server.DBModels
         }
         private string _CharacterName;
 
+
+
         public MirClass Class
         {
             get { return _Class; }
@@ -86,6 +88,21 @@ namespace Server.DBModels
             }
         }
         private int _Level;
+
+        public string Caption
+        {
+            get { return _Caption; }
+            set
+            {
+                if (_Caption == value) return;
+
+                var oldValue = _Caption;
+                _Caption = value;
+
+                OnChanged(oldValue, value, "Caption");
+            }
+        }
+        private string _Caption;
 
         public int HairType
         {
@@ -567,9 +584,6 @@ namespace Server.DBModels
         }
         private int _Rebirth;
 
-        
-
-
         public DateTime NextDeathDropChange
         {
             get { return _NextDeathDropChange; }
@@ -600,7 +614,23 @@ namespace Server.DBModels
             }
         }
         private UserCompanion _Companion;
-        
+
+        [Association("Discipline")]
+        public UserDiscipline Discipline
+        {
+            get { return _Discipline; }
+            set
+            {
+                if (_Discipline == value) return;
+
+                var oldValue = _Discipline;
+                _Discipline = value;
+
+                OnChanged(oldValue, value, "Discipline");
+            }
+        }
+        private UserDiscipline _Discipline;
+
         [Association("Items", true)]
         public DBBindingList<UserItem> Items { get; set; }
 
@@ -621,6 +651,27 @@ namespace Server.DBModels
 
         [Association("Quests", true)]
         public DBBindingList<UserQuest> Quests { get; set; }
+
+        [Association("Friends", true)]
+        public DBBindingList<FriendInfo> Friends { get; set; }
+
+        [Association("FriendedBy", true)]
+        public DBBindingList<FriendInfo> FriendedBy { get; set; }
+
+        public OnlineState OnlineState
+        {
+            get { return _OnlineState; }
+            set
+            {
+                if (_OnlineState == value) return;
+
+                var oldValue = _OnlineState;
+                _OnlineState = value;
+
+                OnChanged(oldValue, value, "OnlineState");
+            }
+        }
+        private OnlineState _OnlineState;
 
         [Association("Marriage")]
         public CharacterInfo Partner
@@ -683,6 +734,25 @@ namespace Server.DBModels
         }
         private string _FiltersItemType;
 
+        public Dictionary<RequiredClass, int> LastRank = new Dictionary<RequiredClass, int>();
+        public Dictionary<RequiredClass, int> CurrentRank = new Dictionary<RequiredClass, int>();
+
+        protected override void OnLoaded()
+        {
+            var removeList = new List<UserItem>();
+
+            foreach (var item in Items)
+            {
+                if (item.Info == null)
+                    removeList.Add(item);
+            }
+
+            foreach (var item in removeList)
+                Items.Remove(item);
+
+            base.OnLoaded();
+        }
+
         protected override void OnDeleted()
         {
             Account = null;
@@ -691,9 +761,6 @@ namespace Server.DBModels
             
             base.OnDeleted();
         }
-
-
-
 
         public PlayerObject Player;
         public LinkedListNode<CharacterInfo> RankingNode;

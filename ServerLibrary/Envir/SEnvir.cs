@@ -5,7 +5,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Mail;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -23,6 +22,8 @@ using S = Library.Network.ServerPackets;
 using C = Library.Network.ClientPackets;
 using System.Reflection;
 using System.Globalization;
+using Server.Envir.Commands.Handler;
+using Server.Envir.Commands;
 
 namespace Server.Envir
 {
@@ -78,6 +79,7 @@ namespace Server.Envir
             if (ChatLogs.Count < 1000)
                 ChatLogs.Enqueue(log);
         }
+
         #endregion
 
         #region Network
@@ -162,6 +164,10 @@ namespace Server.Envir
                         NewConnections?.Enqueue(Connection);
                 }
             }
+            catch (SocketException)
+            {
+
+            }
             catch (Exception ex)
             {
                 Log(ex.ToString());
@@ -212,7 +218,7 @@ namespace Server.Envir
 
         #endregion
 
-    
+
 
         public static bool Started { get; set; }
         public static bool NetworkStarted { get; set; }
@@ -226,7 +232,11 @@ namespace Server.Envir
         public static long DBytesSent, DBytesReceived;
         public static long TotalBytesSent, TotalBytesReceived;
         public static long DownloadSpeed, UploadSpeed;
-        
+
+        public static ICommandHandler CommandHandler = new ErrorHandlingCommandHandler(
+            new PlayerCommandHandler(),
+            new AdminCommandHandler()
+        );
 
         public static bool ServerBuffChanged;
 
@@ -254,9 +264,12 @@ namespace Server.Envir
         public static DBCollection<UserMagic> UserMagicList;
         public static DBCollection<BuffInfo> BuffInfoList;
         public static DBCollection<MonsterInfo> MonsterInfoList;
+        public static DBCollection<FishingInfo> FishingInfoList;
+        public static DBCollection<DisciplineInfo> DisciplineInfoList;
         public static DBCollection<SetInfo> SetInfoList;
         public static DBCollection<AuctionInfo> AuctionInfoList;
         public static DBCollection<MailInfo> MailInfoList;
+        public static DBCollection<QuestInfo> QuestInfoList;
         public static DBCollection<AuctionHistoryInfo> AuctionHistoryInfoList;
         public static DBCollection<UserDrop> UserDropList;
         public static DBCollection<StoreInfo> StoreInfoList;
@@ -275,14 +288,17 @@ namespace Server.Envir
         public static DBCollection<UserCompanionUnlock> UserCompanionUnlockList;
         public static DBCollection<CompanionSkillInfo> CompanionSkillInfoList;
         public static DBCollection<BlockInfo> BlockInfoList;
+        public static DBCollection<FriendInfo> FriendInfoList;
         public static DBCollection<CastleInfo> CastleInfoList;
         public static DBCollection<UserConquest> UserConquestList;
         public static DBCollection<GameGoldPayment> GameGoldPaymentList;
         public static DBCollection<GameStoreSale> GameStoreSaleList;
+        public static DBCollection<GameNPCList> GameNPCList;
         public static DBCollection<GuildWarInfo> GuildWarInfoList;
         public static DBCollection<UserConquestStats> UserConquestStatsList;
         public static DBCollection<UserFortuneInfo> UserFortuneInfoList;
         public static DBCollection<WeaponCraftStatInfo> WeaponCraftStatInfoList;
+        public static DBCollection<UserDiscipline> UserDisciplineList;
 
         public static ItemInfo GoldInfo, RefinementStoneInfo, FragmentInfo, Fragment2Info, Fragment3Info, FortuneCheckerInfo, ItemPartInfo;
 
@@ -326,8 +342,11 @@ namespace Server.Envir
             }
         }
 
+        public static byte[] CryptoKey { get; set; }
+
         public static LinkedList<CharacterInfo> Rankings;
         public static HashSet<CharacterInfo> TopRankings;
+        public static DateTime NextRankChangeReset;
 
         public static long ConDelay, SaveDelay;
         #endregion
@@ -369,7 +388,7 @@ namespace Server.Envir
                         else
                             Globals.ExperienceList[i] = exp;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         Log(string.Format("ExperienceList: Error parsing line {0} - {1}", i, lines[i]));
                     }
@@ -397,6 +416,8 @@ namespace Server.Envir
             SafeZoneInfoList = Session.GetCollection<SafeZoneInfo>();
             ItemInfoList = Session.GetCollection<ItemInfo>();
             MonsterInfoList = Session.GetCollection<MonsterInfo>();
+            FishingInfoList = Session.GetCollection<FishingInfo>();
+            DisciplineInfoList = Session.GetCollection<DisciplineInfo>();
             RespawnInfoList = Session.GetCollection<RespawnInfo>();
             MagicInfoList = Session.GetCollection<MagicInfo>();
             CurrencyInfoList = Session.GetCollection<CurrencyInfo>();
@@ -414,6 +435,7 @@ namespace Server.Envir
             SetInfoList = Session.GetCollection<SetInfo>();
             AuctionInfoList = Session.GetCollection<AuctionInfo>();
             MailInfoList = Session.GetCollection<MailInfo>();
+            QuestInfoList = Session.GetCollection<QuestInfo>();
             AuctionHistoryInfoList = Session.GetCollection<AuctionHistoryInfo>();
             UserDropList = Session.GetCollection<UserDrop>();
             StoreInfoList = Session.GetCollection<StoreInfo>();
@@ -433,24 +455,27 @@ namespace Server.Envir
             CompanionFiltersList = Session.GetCollection<CompanionFilters>();
             UserCompanionUnlockList = Session.GetCollection<UserCompanionUnlock>();
             BlockInfoList = Session.GetCollection<BlockInfo>();
+            FriendInfoList = Session.GetCollection<FriendInfo>();
             CastleInfoList = Session.GetCollection<CastleInfo>();
             UserConquestList = Session.GetCollection<UserConquest>();
             GameGoldPaymentList = Session.GetCollection<GameGoldPayment>();
             GameStoreSaleList = Session.GetCollection<GameStoreSale>();
+            GameNPCList = Session.GetCollection<GameNPCList>();
             GuildWarInfoList = Session.GetCollection<GuildWarInfo>();
             UserConquestStatsList = Session.GetCollection<UserConquestStats>();
             UserFortuneInfoList = Session.GetCollection<UserFortuneInfo>();
             WeaponCraftStatInfoList = Session.GetCollection<WeaponCraftStatInfo>();
+            UserDisciplineList = Session.GetCollection<UserDiscipline>();
 
             GoldInfo = CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold).DropItem;
 
-            RefinementStoneInfo = ItemInfoList.Binding.First(x => x.Effect == ItemEffect.RefinementStone);
-            FragmentInfo = ItemInfoList.Binding.First(x => x.Effect == ItemEffect.Fragment1);
-            Fragment2Info = ItemInfoList.Binding.First(x => x.Effect == ItemEffect.Fragment2);
-            Fragment3Info = ItemInfoList.Binding.First(x => x.Effect == ItemEffect.Fragment3);
+            RefinementStoneInfo = ItemInfoList.Binding.FirstOrDefault(x => x.ItemEffect == ItemEffect.RefinementStone);
+            FragmentInfo = ItemInfoList.Binding.FirstOrDefault(x => x.ItemEffect == ItemEffect.Fragment1);
+            Fragment2Info = ItemInfoList.Binding.FirstOrDefault(x => x.ItemEffect == ItemEffect.Fragment2);
+            Fragment3Info = ItemInfoList.Binding.FirstOrDefault(x => x.ItemEffect == ItemEffect.Fragment3);
 
-            ItemPartInfo = ItemInfoList.Binding.First(x => x.Effect == ItemEffect.ItemPart);
-            FortuneCheckerInfo = ItemInfoList.Binding.First(x => x.Effect == ItemEffect.FortuneChecker);
+            ItemPartInfo = ItemInfoList.Binding.FirstOrDefault(x => x.ItemEffect == ItemEffect.ItemPart);
+            FortuneCheckerInfo = ItemInfoList.Binding.FirstOrDefault(x => x.ItemEffect == ItemEffect.FortuneChecker);
 
             MysteryShipMapRegion = MapRegionList.Binding.FirstOrDefault(x => x.Index == Config.MysteryShipRegionIndex);
             LairMapRegion = MapRegionList.Binding.FirstOrDefault(x => x.Index == Config.LairRegionIndex);
@@ -492,9 +517,10 @@ namespace Server.Envir
             }
         }
 
-        //Only works on Increasing EXP, still need to do Rebirth or loss of exp ranking update.
+
         public static void RankingSort(CharacterInfo character, bool updateLead = true)
         {
+            //Only works on Increasing EXP, still need to do Rebirth or loss of exp ranking update.
             bool changed = false;
 
             LinkedListNode<CharacterInfo> node;
@@ -513,7 +539,6 @@ namespace Server.Envir
 
             UpdateLead();
         }
-
 
         public static void UpdateLead()
         {
@@ -610,6 +635,8 @@ namespace Server.Envir
             CreateNPCs();
 
             CreateSpawns();
+
+            CreateQuestRegions();
         }
 
         private static void CreateMovements(InstanceInfo instance = null, byte index = 0)
@@ -698,6 +725,48 @@ namespace Server.Envir
 
                 if (!ob.Spawn(info.Region, instance, index))
                     Log($"[NPC] Failed to spawn NPC, Region: {info.Region.ServerDescription}, NPC: {info.NPCName}");
+            }
+        }
+
+        private static void CreateQuestRegions(InstanceInfo instance = null, byte index = 0)
+        {
+            foreach (QuestInfo quest in QuestInfoList.Binding)
+            {
+                foreach (QuestTask task in quest.Tasks)
+                {
+                    if (task.Task != QuestTaskType.Region) continue;
+                    if (task.RegionParameter == null) continue;
+
+                    var sourceMap = GetMap(task.RegionParameter.Map, instance, index);
+
+                    if (sourceMap == null)
+                    {
+                        if (instance == null)
+                        {
+                            Log($"[Quest Region] Bad Map, Map: {task.RegionParameter.ServerDescription}");
+                        }
+
+                        continue;
+                    }
+
+                    foreach (Point sPoint in task.RegionParameter.PointList)
+                    {
+                        Cell source = sourceMap.GetCell(sPoint);
+
+                        if (source == null)
+                        {
+                            Log($"[Quest Region] Bad Quest Region, Source: {task.RegionParameter.ServerDescription}, X:{sPoint.X}, Y:{sPoint.Y}");
+                            continue;
+                        }
+
+                        if (source.QuestTasks == null)
+                            source.QuestTasks = new List<QuestTask>();
+
+                        if (source.QuestTasks.Contains(task)) continue;
+
+                        source.QuestTasks.Add(task);
+                    }
+                }
             }
         }
 
@@ -836,6 +905,8 @@ namespace Server.Envir
             MonsterInfoList = null;
             RespawnInfoList = null;
             MagicInfoList = null;
+            FishingInfoList = null;
+            DisciplineInfoList = null;
 
             BeltLinkList = null;
             UserItemList = null;
@@ -844,6 +915,7 @@ namespace Server.Envir
             UserMagicList = null;
             BuffInfoList = null;
             SetInfoList = null;
+            UserDisciplineList = null;
 
             Rankings = null;
             Random = null;
@@ -901,6 +973,7 @@ namespace Server.Envir
                         if (!NewConnections.TryDequeue(out connection)) break;
 
                         IPCount.TryGetValue(connection.IPAddress, out var ipCount);
+
                         IPCount[connection.IPAddress] = ipCount + 1;
 
                         Connections.Add(connection);
@@ -1268,7 +1341,7 @@ namespace Server.Envir
             Session.Save(false);
 
             WebServer.Save();
-            
+
             Thread saveThread = new Thread(CommitChanges) { IsBackground = true };
             saveThread.Start(Session);
         }
@@ -1333,7 +1406,7 @@ namespace Server.Envir
 
             lines.Clear();
         }
-       
+
         public static void CheckGuildWars()
         {
             TimeSpan change = Now - LastWarTime;
@@ -1372,6 +1445,12 @@ namespace Server.Envir
             {
                 foreach (UserConquest conquest in UserConquestList.Binding)
                 {
+                    if (conquest.Guild == null)
+                    {
+                        conquest.Delete();
+                        continue;
+                    }
+
                     if (conquest.Castle != info) continue;
                     if (conquest.WarDate > Now.Date) continue;
 
@@ -1401,7 +1480,6 @@ namespace Server.Envir
         }
         public static void StartConquest(CastleInfo info, List<GuildInfo> participants)
         {
-
             ConquestWar War = new ConquestWar
             {
                 Castle = info,
@@ -1441,7 +1519,7 @@ namespace Server.Envir
             item.Flags = check.Flags;
             item.ExpireTime = check.ExpireTime;
 
-            if (IsCurrencyItem(item.Info) || item.Info.Effect == ItemEffect.Experience)
+            if (IsCurrencyItem(item.Info) || item.Info.ItemEffect == ItemEffect.Experience)
                 item.Count = check.Count;
             else
                 item.Count = Math.Min(check.Info.StackSize, check.Count);
@@ -1469,7 +1547,7 @@ namespace Server.Envir
             item.Flags = check.Flags;
             item.ExpireTime = check.ExpireTime;
 
-            if (IsCurrencyItem(item.Info) || item.Info.Effect == ItemEffect.Experience)
+            if (IsCurrencyItem(item.Info) || item.Info.ItemEffect == ItemEffect.Experience)
                 item.Count = check.Count;
             else
                 item.Count = Math.Min(check.Info.StackSize, check.Count);
@@ -2706,9 +2784,11 @@ namespace Server.Envir
                 con.Enqueue(new S.NewAccount { Result = NewAccountResult.BadRealName });
                 return;
             }
+
             var list = AccountInfoList.Binding.Where(e => e.CreationIP == con.IPAddress).ToList();
             int nowcount = 0;
             int todaycount = 0;
+
             for (int i = 0; i < list.Count; i++)
             {
                 AccountInfo info = list[i];
@@ -2727,13 +2807,14 @@ namespace Server.Envir
                         break;
                 }
             }
+
             if (nowcount > 2 || todaycount > 5)
             {
                 IPBlocks[con.IPAddress] = Now.AddDays(7);
 
                 for (int i = Connections.Count - 1; i >= 0; i--)
                     if (Connections[i].IPAddress == con.IPAddress)
-                        Connections[i].TryDisconnect();
+                        Connections[i].Disconnecting = true;
 
                 Log($"{con.IPAddress} Disconnected and banned for trying too many accounts");
                 return;
@@ -3280,7 +3361,7 @@ namespace Server.Envir
             return false;
         }
 
-      
+
 
         #region Password Encryption
         private const int Iterations = 1354;
@@ -3289,12 +3370,12 @@ namespace Server.Envir
 
         public static byte[] CreateHash(string password)
         {
-            using (RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider())
+            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
             {
                 byte[] salt = new byte[SaltSize];
                 rng.GetBytes(salt);
 
-                using (Rfc2898DeriveBytes rfc = new Rfc2898DeriveBytes(password, salt, Iterations))
+                using (Rfc2898DeriveBytes rfc = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256))
                 {
                     byte[] hash = rfc.GetBytes(hashSize);
 
@@ -3312,7 +3393,7 @@ namespace Server.Envir
             byte[] salt = new byte[SaltSize];
             Buffer.BlockCopy(totalHash, 0, salt, 0, SaltSize);
 
-            using (Rfc2898DeriveBytes rfc = new Rfc2898DeriveBytes(password, salt, Iterations))
+            using (Rfc2898DeriveBytes rfc = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256))
             {
                 byte[] hash = rfc.GetBytes(hashSize);
 
@@ -3386,6 +3467,15 @@ namespace Server.Envir
 
             int total = 0;
             int rank = 0;
+
+            bool resetRankChange = false;
+
+            if (NextRankChangeReset < Now)
+            {
+                resetRankChange = true;
+                NextRankChangeReset = Now + Config.RankChangeResetDelay;
+            }
+
             foreach (CharacterInfo info in Rankings)
             {
                 if (info.Deleted) continue;
@@ -3408,8 +3498,16 @@ namespace Server.Envir
 
                 rank++;
 
-                if (p.OnlineOnly && info.Player == null) continue;
+                //TODO - Needs changing so it runs this periodicly - instead of just when requested
+                if (resetRankChange || !info.LastRank.TryGetValue(p.Class, out int lastRank))
+                {
+                    info.LastRank[p.Class] = rank;
+                    lastRank = rank;
+                }
 
+                info.CurrentRank[p.Class] = rank;
+
+                if (p.OnlineOnly && info.Player == null) continue;
 
                 if (total++ < p.StartIndex || result.Ranks.Count > 20) continue;
 
@@ -3424,7 +3522,8 @@ namespace Server.Envir
                     Name = info.CharacterName,
                     Online = info.Player != null,
                     Observable = info.Observable || isGM,
-                    Rebirth = info.Rebirth
+                    Rebirth = info.Rebirth,
+                    RankChange = lastRank - rank
                 });
             }
 
@@ -3432,6 +3531,7 @@ namespace Server.Envir
 
             return result;
         }
+
         public static Map GetMap(MapInfo info, InstanceInfo instance = null, byte instanceSequence = 0)
         {
             if (instance == null)
@@ -3474,6 +3574,8 @@ namespace Server.Envir
             CreateNPCs(instance, index);
 
             CreateSpawns(instance, index);
+
+            CreateQuestRegions(instance, index);
 
             Log($"Loaded Instance {instance.Name} at index {index}");
 
@@ -3533,6 +3635,29 @@ namespace Server.Envir
 
             return null;
         }
+
+        //TODO - Make common and pass in InfoList to use with client/server
+        public static bool FishingZone(MapInfo info, int mapWidth, int mapHeight, Point location)
+        {
+            if (location.X < 0 || location.Y < 0 || location.X > mapWidth || location.Y > mapHeight)
+                return false;
+
+            foreach (var zone in FishingInfoList.Binding)
+            {
+                if (zone.Region != null && zone.Region.Map == info)
+                {
+                    if (zone.Region.PointList == null)
+                        zone.Region.CreatePoints(mapWidth);
+
+                    if (zone.Region.PointList.Contains(location))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 
     public class WebCommand
@@ -3550,12 +3675,11 @@ namespace Server.Envir
     public enum CommandType
     {
         None,
+
         Activation,
         PasswordReset,
         AccountDelete
-
     }
-
 
     public sealed class IPNMessage
     {

@@ -1,9 +1,11 @@
 ﻿using MirDB;
+using System.Text.Json.Serialization;
 
 namespace Library.SystemModels
 {
     public sealed class MapInfo : DBObject
     {
+        [IsIdentity]
         public string FileName
         {
             get { return _FileName; }
@@ -34,9 +36,9 @@ namespace Library.SystemModels
         }
         private string _Description;
 
+        [JsonIgnore]
         [IgnoreProperty]
         public string ServerDescription => $"{FileName} - {Description}";
-
 
         public int MiniMap
         {
@@ -67,6 +69,21 @@ namespace Library.SystemModels
             }
         }
         private LightSetting _Light;
+
+        public Weather Weather
+        {
+            get { return _Weather; }
+            set
+            {
+                if (_Weather == value) return;
+
+                var oldValue = _Weather;
+                _Weather = value;
+
+                OnChanged(oldValue, value, "Weather");
+            }
+        }
+        private Weather _Weather;
 
         public FightSetting Fight
         {
@@ -248,9 +265,6 @@ namespace Library.SystemModels
         }
         private SoundIndex _Music;
 
-
-
-
         public int MonsterHealth
         {
             get { return _MonsterHealth; }
@@ -401,7 +415,7 @@ namespace Library.SystemModels
         }
         private int _MaxGoldRate;
 
-
+        [JsonIgnore]
         [Association("Maps")]
         public InstanceInfo Instance
         {
@@ -434,6 +448,7 @@ namespace Library.SystemModels
         [Association("Guards", true)]
         public DBBindingList<GuardInfo> Guards { get; set; }
 
+        [JsonIgnore]
         [Association("Regions", true)]
         public DBBindingList<MapRegion> Regions { get; set; }
 

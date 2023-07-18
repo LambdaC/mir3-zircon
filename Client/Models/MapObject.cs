@@ -73,6 +73,7 @@ namespace Client.Models
         public virtual int Level { get; set; }
         public virtual int CurrentHP { get; set; }
         public virtual int CurrentMP { get; set; }
+        public virtual int CurrentFP { get; set; }
 
         public uint AttackerID;
 
@@ -83,6 +84,10 @@ namespace Client.Models
         public bool MagicCast;
         public MirGender Gender;
         public bool MiningEffect;
+
+        public FishingState FishingState;
+        public bool FishFound;
+        public Point FloatLocation;
 
         public Point CurrentLocation
         {
@@ -115,6 +120,19 @@ namespace Client.Models
         }
         private string _Name;
 
+        public virtual string Caption
+        {
+            get { return _Caption; }
+            set
+            {
+                if (_Caption == value) return;
+
+                _Caption = value;
+
+                NameChanged();
+            }
+        }
+        private string _Caption;
         public virtual string Title
         {
             get { return _Title; }
@@ -179,7 +197,7 @@ namespace Client.Models
         private Color _NameColour;
 
         public DateTime ChatTime;
-        public DXLabel NameLabel, ChatLabel, TitleNameLabel;
+        public DXLabel NameLabel, ChatLabel, TitleNameLabel, CaptionLabel;
         public List<DamageInfo> DamageList = new List<DamageInfo>();
         public List<MirEffect> Effects = new List<MirEffect>();
 
@@ -328,7 +346,6 @@ namespace Client.Models
             DrawX *= MapControl.CellWidth;
             DrawY *= MapControl.CellHeight;
 
-
             if (this != User)
             {
                 DrawX += MovingOffSet.X - User.MovingOffSet.X;
@@ -454,8 +471,8 @@ namespace Client.Models
             }
             else if (FrostBiteEffect != null)
                 FrostBiteEnd();
-
         }
+
         public virtual void UpdateFrame()
         {
             if (Frames == null || CurrentFrame == null) return;
@@ -556,6 +573,9 @@ namespace Client.Models
                 case MirAction.Dead:
                     Interupt = true;
                     break;
+                case MirAction.Fishing:
+                    Interupt = CurrentAnimation == MirAnimation.FishingWait;
+                    break;
                 default:
                     Interupt = false;
                     break;
@@ -580,7 +600,6 @@ namespace Client.Models
                     break;
                 case MirAction.Spell:
                     if (!MagicCast) break;
-
 
                     switch (MagicType)
                     {
@@ -846,47 +865,12 @@ namespace Client.Models
 
                         //Teleportation
 
-                        #region Adamantine Fire Ball & Meteor Shower
+                        #region AdamantineFireBall & MeteorShower & FireBounce
 
                         case MagicType.AdamantineFireBall:
                         case MagicType.MeteorShower:
-                            /*
-                             foreach (Point point in MagicLocations)
-                             {
-                                 Effects.Add(spell = new MirProjectile(1500, 6, TimeSpan.FromMilliseconds(100), LibraryFile.MagicEx5, 0, 0, Globals.NoneColour, CurrentLocation)
-                                 {
-                                    // Blend = true,
-                                     MapTarget = point,
-                                 });
-                                 spell.Process();
-                             }
+                        case MagicType.FireBounce:
 
-                             foreach (MapObject attackTarget in AttackTargets)
-                             {
-                                 Effects.Add(spell = new MirProjectile(1500, 6, TimeSpan.FromMilliseconds(100), LibraryFile.MagicEx5, 0, 0, Globals.NoneColour, CurrentLocation)
-                                 {
-                                     //Blend = true,
-                                     Target = attackTarget,
-                                 });
-
-                                 //PARTICLE ?
-
-                                 spell.CompleteAction = () =>
-                                 {
-                                     attackTarget.Effects.Add(spell = new MirEffect(1700 + CEnvir.Random.Next(3) * 10, 5, TimeSpan.FromMilliseconds(100), LibraryFile.MagicEx5, 0, 0, Globals.NoneColour)
-                                     {
-                                      //   Blend = true,
-                                         Target = attackTarget,
-                                     });
-                                     spell.Process();
-
-                                     DXSoundManager.Play(SoundIndex.GreaterFireBallEnd);
-                                 };
-                                 spell.Process();
-                             }
-
-                             if (MagicLocations.Count > 0 || AttackTargets.Count > 0)
-                                 DXSoundManager.Play(SoundIndex.GreaterFireBallTravel);*/
                             foreach (Point point in MagicLocations)
                             {
                                 Effects.Add(spell = new MirProjectile(1640, 6, TimeSpan.FromMilliseconds(100), LibraryFile.Magic, 35, 35, Globals.FireColour, CurrentLocation, typeof(Client.Models.Particles.FireballTrail))
@@ -904,8 +888,6 @@ namespace Client.Models
                                     Blend = true,
                                     Target = attackTarget,
                                 });
-
-                                //PARTICLE ?
 
                                 spell.CompleteAction += () =>
                                 {
@@ -1305,7 +1287,7 @@ namespace Client.Models
                         case MagicType.ChainLightning:
                             foreach (Point point in MagicLocations)
                             {
-                                spell = new MirEffect(470, 10, TimeSpan.FromMilliseconds(100), LibraryFile.MagicEx2, 50, 80, Globals.LightningColour)
+                                spell = new MirEffect(830, 6, TimeSpan.FromMilliseconds(100), LibraryFile.MagicEx, 50, 80, Globals.LightningColour)
                                 {
                                     Blend = true,
                                     MapTarget = point,
@@ -1313,10 +1295,13 @@ namespace Client.Models
                                 spell.Process();
                             }
 
-                            DXSoundManager.Play(SoundIndex.ChainLightningEnd);
+                            if (MagicLocations.Count > 0)
+                                DXSoundManager.Play(SoundIndex.ChainLightningEnd);
                             break;
 
                         #endregion
+
+                        #region Asteroid
 
                         case MagicType.Asteroid:
 
@@ -1343,6 +1328,8 @@ namespace Client.Models
                             }
                             break;
 
+                        #endregion
+
                         //Meteor Shower -> Adam Fire Ball
 
                         //Renounce
@@ -1355,10 +1342,11 @@ namespace Client.Models
 
                         //Mirror Image
 
+
+
                         #endregion
 
                         #region Taoist
-
 
                         #region Heal
 
@@ -1909,6 +1897,8 @@ namespace Client.Models
                                 {
                                     Blend = true,
                                     MapTarget = point,
+                                    Direction = Direction,
+                                    Skip = 10
                                     //  DrawColour = Color.FromArgb(76, 34, 4),
                                 });
                                 spell.Process();
@@ -1920,6 +1910,8 @@ namespace Client.Models
                                 {
                                     Blend = true,
                                     Target = attackTarget,
+                                    Direction = Direction,
+                                    Skip = 10
                                     //   DrawColour = Color.FromArgb(76, 34, 4),
                                 });
 
@@ -2058,7 +2050,7 @@ namespace Client.Models
 
                         #endregion
 
-                        #region Fire Ball
+                        #region Pink Fire Ball
 
                         case MagicType.PinkFireBall:
                             foreach (Point point in MagicLocations)
@@ -2102,7 +2094,8 @@ namespace Client.Models
                             break;
 
                         #endregion
-                        #region Fire Ball
+
+                        #region Green Sludge Ball
 
                         case MagicType.GreenSludgeBall:
                             foreach (Point point in MagicLocations)
@@ -2146,7 +2139,6 @@ namespace Client.Models
                             break;
 
                         #endregion
-
 
                         #region Monster Scortched Earth
 
@@ -2214,6 +2206,8 @@ namespace Client.Models
                             break;
 
                         #endregion
+
+                        #region Sama
 
                         case MagicType.SamaGuardianFire:
                             if (Config.DrawEffects)
@@ -2345,6 +2339,9 @@ namespace Client.Models
                             spell.Process();
 
                             break;
+
+                        #endregion
+
                     }
 
                     break;
@@ -2365,6 +2362,14 @@ namespace Client.Models
 
             switch (action.Action)
             {
+                case MirAction.Fishing:
+                    FishingState = (FishingState)action.Extra[0];
+                    FloatLocation = (Point)action.Extra[1];
+                    FishFound = (bool)action.Extra[2];
+
+                    if (FishingState == FishingState.Reel)
+                        FishingState = FishingState.None;
+                    break;
                 case MirAction.Mining:
                     MiningEffect = (bool)action.Extra[0];
                     break;
@@ -2898,10 +2903,11 @@ namespace Client.Models
 
                         #endregion
 
-                        #region Adamantine Fire Ball & MeteorShower
+                        #region AdamantineFireBall & MeteorShower & FireBounce
 
                         case MagicType.AdamantineFireBall:
                         case MagicType.MeteorShower:
+                        case MagicType.FireBounce:
                             Effects.Add(spell = new MirEffect(1560, 9, TimeSpan.FromMilliseconds(65), LibraryFile.Magic, 10, 35, Globals.FireColour)
                             {
                                 Blend = true,
@@ -3196,7 +3202,6 @@ namespace Client.Models
 
                         #endregion
 
-
                         #region Frost Bite
 
                         case MagicType.FrostBite:
@@ -3209,6 +3214,10 @@ namespace Client.Models
                             break;
 
                         #endregion
+
+
+                        //Ice Sonic
+
 
                         #endregion
 
@@ -3651,12 +3660,11 @@ namespace Client.Models
                         #region The New Beginning
 
                         case MagicType.TheNewBeginning:
-                            Effects.Add(spell = new MirEffect(2300, 9, TimeSpan.FromMilliseconds(100), LibraryFile.MagicEx4, 60, 60, Globals.NoneColour)
+                            Effects.Add(spell = new MirEffect(2200, 8, TimeSpan.FromMilliseconds(100), LibraryFile.MagicEx4, 60, 60, Globals.NoneColour)
                             {
                                 Blend = true,
-                                Target = this,
-                                Direction = action.Direction
-                            });
+                                MapTarget = CurrentLocation              
+                            }) ;
                             DXSoundManager.Play(SoundIndex.TheNewBeginning);
                             break;
 
@@ -3736,7 +3744,6 @@ namespace Client.Models
                         #endregion
 
                         #endregion
-
 
                         #region Monster Scortched Earth
 
@@ -3883,7 +3890,6 @@ namespace Client.Models
                         ActionQueue.Add(new ObjectAction(MirAction.Standing, Direction, CurrentLocation));
                         break;
                 }
-
             }
 
             switch (ActionQueue[0].Action)
@@ -3894,8 +3900,8 @@ namespace Client.Models
                 case MirAction.Pushed:
                     if (!GameScene.Game.MoveFrame) return;
                     break;
-
             }
+
             SetAction(ActionQueue[0]);
             ActionQueue.RemoveAt(0);
         }
@@ -4066,7 +4072,23 @@ namespace Client.Models
 
         public virtual void NameChanged()
         {
-            if (string.IsNullOrEmpty(Name))
+
+
+            if (Race is ObjectType.Player && Caption is not null)
+            {
+                CaptionLabel = new DXLabel
+                {
+                    BackColour = Color.Empty,
+                    ForeColour = NameColour,
+                    Outline = true,
+                    OutlineColour = Color.Black,
+                    Text = Caption,
+                    IsControl = false,
+                    IsVisible = true,
+
+                };
+            }
+                if (string.IsNullOrEmpty(Name))
             {
                 NameLabel = null;
             }
@@ -4155,9 +4177,9 @@ namespace Client.Models
                 if (Config.HighlightedItems != string.Empty)
                 {
                     string[] items = Config.HighlightedItems.Split(',');
-                    for (int i = 0; i < 10; i++)
+                    for (int i = 0; i < items.Length; i++)
                     {
-                        if (items[i].ToLower() == Name.ToLower())
+                        if (string.Equals(items[i].Replace(" ", ""), Name.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
                         {
                             NameLabel.ForeColour = Color.OrangeRed;
                             break;
@@ -4166,6 +4188,8 @@ namespace Client.Models
                 }
                 NameLabel.Draw();
             }
+
+         
 
             if (TitleNameLabel != null)
             {
@@ -4179,6 +4203,26 @@ namespace Client.Models
 
                 TitleNameLabel.Location = new Point(x, y);
                 TitleNameLabel.Draw();
+            }
+
+            if (CaptionLabel is not null)
+            {
+
+                int x = DrawX + (48 - CaptionLabel.Size.Width) / 2;
+                int y = (DrawY - (32 - CaptionLabel.Size.Height) / 2) - 13;
+
+                if (Dead)
+                    y += 21;
+                else
+                    y -= 6;
+
+                if (TitleNameLabel != null)
+                {
+                    y -= 13;
+                }
+
+                CaptionLabel.Location = new Point(x, y);
+                CaptionLabel.Draw();
             }
         }
         public virtual void DrawDamage()
